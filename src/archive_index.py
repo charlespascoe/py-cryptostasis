@@ -13,14 +13,16 @@ class ArchiveEntry:
     @staticmethod
     def create(data):
         entry_id = bytes.fromhex(data['id'])
-        name = bytes.fromhex(data['name'])
+        name = data['name']
         key = bytes.fromhex(data['key'])
         tweak = bytes.fromhex(data['tweak'])
         file_hash = bytes.fromhex(data['hash'])
 
+        return ArchiveEntry(entry_id, name, key, tweak, file_hash)
+
     def serialise(self):
         return {
-            'id': self.entry_id.hex(),
+            'id': self.id.hex(),
             'name': self.name,
             'key': self.key.hex(),
             'tweak': self.tweak.hex(),
