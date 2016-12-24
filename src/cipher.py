@@ -1,6 +1,6 @@
 import skein
-
-TWEAK_SIZE_BYTES = 16
+import consts
+import log
 
 class Cipher:
     @property
@@ -58,10 +58,10 @@ class Cipher:
 
     def encrypt_block(self, block):
         encrypted_block = self.threefish.encrypt_block(block)
-        self.threefish.tweak = encrypted_block[:TWEAK_SIZE_BYTES]
+        self.threefish.tweak = encrypted_block[ : consts.TWEAK_LENGTH]
         return encrypted_block
 
     def decrypt_block(self, encrypted_block):
         block = self.threefish.decrypt_block(encrypted_block)
-        self.threefish.tweak = encrypted_block[:TWEAK_SIZE_BYTES]
+        self.threefish.tweak = encrypted_block[ : consts.TWEAK_LENGTH]
         return block
