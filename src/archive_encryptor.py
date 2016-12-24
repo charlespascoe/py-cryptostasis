@@ -29,13 +29,9 @@ class ArchiveEncryptor:
             if len(block) != cipher.block_size_bytes:
                 break
 
-            log.debug('Encrypt - Block length: {}'.format(len(block)))
-
             encrypted_block = cipher.encrypt_block(block)
             hasher.update(encrypt_block)
             output_strm.write(encrypted_block)
-
-        log.debug('Encrypt - Last Block Length: {}'.format(len(block)))
 
         encrypted_block = cipher.encrypt_block(cipher.append_padding(block))
         hasher.update(encrypted_block)
