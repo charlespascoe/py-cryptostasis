@@ -4,6 +4,8 @@ import sys
 from getpass import getpass
 import key_derivation
 import log
+from archive_encryptor import ArchiveEncryptor
+import consts
 
 
 def print_stderr(message = '', line_end = '\n'):
@@ -27,7 +29,6 @@ def new_password():
         print_stderr()
 
     return password
-
 
 
 def load_archive(path):
@@ -66,8 +67,13 @@ def load_archive(path):
         return eai.decrypt_index(master_key)
 
 
-def encrypt(input_strm, output_strm, archive_name):
-    output_strm.write(input_strm.read(10))
+def encrypt(archive_index, input_strm, output_strm, archive_name):
+    if archive_index.name_exists(archive_name):
+        print_stderr('\'{}\' archive exists - quitting'.format(archive_name))
+        sys.exit(1)
+
+    arch_enc = ArchiveEncryptor(archive_index)
+    arch_enc.encrypt_archive(input_strm, output_strm, archive_name)
 
 
 def decrypt(input_strm, output_strm):
@@ -102,7 +108,7 @@ if __name__ == '__main__':
     archive_index = load_archive('~/.cryptostasis/index')
 
     if args.archive_name != None:
-        encrypt(input_strm, output_strm, args.archive_name)
+        encrypt(archive_index, input_strm, output_strm, args.archive_name)
     elif args.decrypt:
         decrypt(input_strm, output_strm)
     else:
