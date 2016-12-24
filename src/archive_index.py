@@ -1,5 +1,7 @@
 import json
 import log
+import consts
+import os
 
 
 class ArchiveEntry:
@@ -51,3 +53,34 @@ class ArchiveIndex:
 
         self.encrypted_archive_index.encrypt_index(index_buf)
         self.encrypted_archive_index.save()
+
+    def name_exists(self, name):
+        for entry in self.index:
+            if entry.name == name:
+                return True
+
+        return False
+
+    def get_archive_entry(self, archive_id):
+        for entry in self.index:
+            if entry.id == archive_id:
+                return entry
+
+        return None
+
+    def new_id(self):
+        new_id = os.urandom(consts.ARCHIVE_ID_LENGTH)
+
+        while self.get_archive_entry(new_id) is not None:
+            new_id = os.urandom(consts.ARCHIVE_ID_LENGTH)
+
+        return new_id
+
+    def add_entry(self, entry_id, name, key, tweak, file_hash):
+        log.debug('Adding archive entry:')
+        log.debug('    Entry ID: {}...'.format(entry_id.hex()[:16]))
+        log.debug('    Name: {}'.format(name))
+        log.debug('    Key: {}...'.format(key.hex()[:16]))
+        log.debug('    Tweak: {}'.format(tweak.hex()))
+        log.debug('    Encrypted File Hash: {}...'.format(file_hash.hex()[:16]))
+        self.index.append(ArchiveEntry(entry_id, name, key, tweak, file_hash))
