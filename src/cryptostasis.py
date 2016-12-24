@@ -48,7 +48,7 @@ def load_archive(path):
         try:
             eai.load()
             log.info('Successfully loaded archive index')
-        except e:
+        except Exception as e:
             log.info('Failed to load archive index')
             print_stderr(str(e))
             sys.exit(1)

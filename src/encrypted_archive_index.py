@@ -7,7 +7,7 @@ import log
 
 class ArchiveIndexException(Exception):
     def __init__(self, message):
-        super(message)
+        super().__init__(message)
 
 
 class IndexCorruptException(ArchiveIndexException):
@@ -17,12 +17,12 @@ class IndexCorruptException(ArchiveIndexException):
         if reason is not None:
             message += ' ({})'.format(reason)
 
-        super(message)
+        super().__init__(message)
 
 
 class UnknownIndexVersionException(ArchiveIndexException):
     def __init__(self, path, version):
-        super('Unknown index version: {} ({})'.format(version, path))
+        super().__init__('Unknown index version: {} ({})'.format(version, path))
         self.version = version
         self.path = path
 
