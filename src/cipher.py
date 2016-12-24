@@ -22,7 +22,10 @@ class Cipher:
 
         last_block_length = len(buf) % self.block_size_bytes
 
-        padded_last_block = self.append_padding(buf[-last_block_length:])
+        if last_block_length == 0:
+            padded_last_block = self.append_padding(bytes([]))
+        else:
+            padded_last_block = self.append_padding(buf[-last_block_length:])
 
         out += self.encrypt_block(padded_last_block)
 
