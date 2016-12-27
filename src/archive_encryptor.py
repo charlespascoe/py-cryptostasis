@@ -10,11 +10,14 @@ class ArchiveEncryptor:
         self.archive_index = archive_index
 
     def encrypt_archive(self, input_strm, output_strm, name):
+        log.verbose('Generating archive ID...')
         archive_id = self.archive_index.new_id()
 
+        log.verbose('Generating encryption key and tweak...')
         key = os.urandom(consts.ENCRYPTION_KEY_LENGTH)
         tweak = os.urandom(consts.TWEAK_LENGTH)
 
+        log.verbose('Writing archive metadata')
         output_strm.write(bytes([consts.ARCHIVE_VERSION]))
         output_strm.write(archive_id)
 
