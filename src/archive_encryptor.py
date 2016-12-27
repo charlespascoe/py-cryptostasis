@@ -47,7 +47,7 @@ class ArchiveEncryptor:
                 break
 
             encrypted_block = cipher.encrypt_block(block)
-            hasher.update(encrypt_block)
+            hasher.update(encrypted_block)
             output_strm.write(encrypted_block)
 
         encrypted_block = cipher.encrypt_block(cipher.append_padding(block))
