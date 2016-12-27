@@ -84,6 +84,14 @@ if __name__ == '__main__':
 
     parser.add_argument('-f', type=str, dest='input_file', help='Input Archive File')
     parser.add_argument('-o', type=str, dest='output_file', help='Output File name')
+    parser.add_argument(
+        '-I',
+        '--index',
+        type=str,
+        dest='index_file',
+        default=consts.ARCHIVE_INDEX_DEFAULT_LOCATION,
+        help='Archive Index File (defaults to {})'.format(consts.ARCHIVE_INDEX_DEFAULT_LOCATION)
+    )
 
     args = parser.parse_args()
 
@@ -99,7 +107,7 @@ if __name__ == '__main__':
     if args.output_file != None:
         output_strm = open(args.output_file, 'wb')
 
-    archive_index = load_archive('~/.cryptostasis/index')
+    archive_index = load_archive(args.index_file)
 
     if args.archive_name != None:
         encrypt(archive_index, input_strm, output_strm, args.archive_name)
