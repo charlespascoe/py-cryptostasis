@@ -2,15 +2,17 @@ import json
 import log
 import consts
 import os
+from datetime import datetime
 
 
 class ArchiveEntry:
-    def __init__(self, entry_id, name, key, tweak, file_hash):
+    def __init__(self, entry_id, name, key, tweak, file_hash, timestamp):
         self.id = entry_id
         self.name = name
         self.key = key
         self.tweak = tweak
         self.file_hash = file_hash
+        self.timestamp = timestamp
 
     @staticmethod
     def create(data):
@@ -19,8 +21,9 @@ class ArchiveEntry:
         key = bytes.fromhex(data['key'])
         tweak = bytes.fromhex(data['tweak'])
         file_hash = bytes.fromhex(data['hash'])
+        timestamp = data['timestamp']
 
-        return ArchiveEntry(entry_id, name, key, tweak, file_hash)
+        return ArchiveEntry(entry_id, name, key, tweak, file_hash, timestamp)
 
     def serialise(self):
         return {
@@ -28,7 +31,8 @@ class ArchiveEntry:
             'name': self.name,
             'key': self.key.hex(),
             'tweak': self.tweak.hex(),
-            'hash': self.file_hash.hex()
+            'hash': self.file_hash.hex(),
+            'timestamp': self.timestamp
         }
 
 
@@ -83,4 +87,4 @@ class ArchiveIndex:
         log.debug('    Key: {}...'.format(key.hex()[:16]))
         log.debug('    Tweak: {}'.format(tweak.hex()))
         log.debug('    Encrypted File Hash: {}...'.format(file_hash.hex()[:16]))
-        self.index.append(ArchiveEntry(entry_id, name, key, tweak, file_hash))
+        self.index.append(ArchiveEntry(entry_id, name, key, tweak, file_hash, round(datetime.utcnow().timestamp())))
