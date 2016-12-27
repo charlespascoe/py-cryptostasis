@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from argparse import ArgumentParser
 from encrypted_archive_index import EncryptedArchiveIndex
 import sys
