@@ -35,6 +35,9 @@ class ArchiveEntry:
             'timestamp': self.timestamp
         }
 
+    def format(self, name_col_length):
+        return '{}  {}'.format(self.name.ljust(name_col_length), datetime.utcfromtimestamp(self.timestamp).ctime())
+
 
 class ArchiveIndex:
     def __init__(self, encrypted_archive_index, index_buf = None):
@@ -88,3 +91,13 @@ class ArchiveIndex:
         log.debug('    Tweak: {}'.format(tweak.hex()))
         log.debug('    Encrypted File Hash: {}...'.format(file_hash.hex()[:16]))
         self.index.append(ArchiveEntry(entry_id, name, key, tweak, file_hash, round(datetime.utcnow().timestamp())))
+
+    def __str__(self):
+        name_col_length = max([len(entry.name) for entry in self.index])
+
+        lines = ['Name'.ljust(name_col_length) + '  Created']
+
+        for entry in self.index:
+            lines.append(entry.format(name_col_length))
+
+        return '\n'.join(lines)
