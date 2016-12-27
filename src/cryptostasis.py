@@ -8,15 +8,9 @@ from archive_encryptor import ArchiveEncryptor
 import consts
 
 
-def print_stderr(message = '', line_end = '\n'):
-    sys.stderr.write(message)
-    sys.stderr.write(line_end)
-    sys.stderr.flush()
-
-
 def new_password():
-    print_stderr('===== First Time Setup =====')
-    print_stderr('You\'ll need to set a password used to encrypt the archive index')
+    log.msg('===== First Time Setup =====')
+    log.msg('You\'ll need to set a password used to encrypt the archive index')
 
     while True:
         password = getpass('New Index Password: ')
@@ -25,8 +19,8 @@ def new_password():
         if password == confirm_password:
             break
 
-        print_stderr('Passwords do not match - please try again')
-        print_stderr()
+        log.msg('Passwords do not match - please try again')
+        log.msg()
 
     return password
 
@@ -49,19 +43,19 @@ def load_archive(path):
             eai.load()
             log.info('Successfully loaded archive index')
         except Exception as e:
-            log.info('Failed to load archive index')
-            print_stderr(str(e))
+            log.msg('Failed to load archive index')
+            log.debug(str(e))
             sys.exit(1)
 
         password = getpass('Index Password: ')
         master_key = key_derivation.derive_master_key(password, eai.password_salt)
 
         if not eai.verify_master_key(master_key):
-            print_stderr('Incorrect password')
+            log.msg('Incorrect password')
             sys.exit(1)
 
         if not eai.verify_index_integrity(master_key):
-            print_stderr('Index corrupt')
+            log.msg('Index corrupt')
             sys.exit(1)
 
         return eai.decrypt_index(master_key)
@@ -69,7 +63,7 @@ def load_archive(path):
 
 def encrypt(archive_index, input_strm, output_strm, archive_name):
     if archive_index.name_exists(archive_name):
-        print_stderr('\'{}\' archive exists - quitting'.format(archive_name))
+        log.msg('\'{}\' archive exists - quitting'.format(archive_name))
         sys.exit(1)
 
     arch_enc = ArchiveEncryptor(archive_index)
