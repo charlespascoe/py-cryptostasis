@@ -24,6 +24,8 @@ Dependencies
 * pyskein (`pip3 install pyskein`)
 * argon2-cffi (`pip3 install argon2-cffi`)
 
+Install both dependencies by running `pip3 install -r requirements.txt`
+
 Usage
 -----
 
