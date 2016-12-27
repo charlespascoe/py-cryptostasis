@@ -8,13 +8,11 @@ from archive_encryptor import ArchiveEncryptor
 import consts
 
 
-def new_password():
-    log.msg('===== First Time Setup =====')
-    log.msg('You\'ll need to set a password used to encrypt the archive index')
+def new_password(prompt, confirm_prompt='Confirm Password: '):
 
     while True:
-        password = getpass('New Index Password: ')
-        confirm_password = getpass('Confirm Password: ')
+        password = getpass(prompt)
+        confirm_password = getpass(confirm_prompt)
 
         if password == confirm_password:
             break
@@ -30,7 +28,9 @@ def load_archive(path):
 
     if not eai.exists():
         log.info('Archive Index does not exist - going through first time setup')
-        password = new_password()
+        log.msg('===== First Time Setup =====')
+        log.msg('You\'ll need to set a password used to encrypt the archive index')
+        password = new_password('New Index Password: ')
         eai.password_salt = key_derivation.new_salt()
         master_key = key_derivation.derive_master_key(password, eai.password_salt)
         eai.update_master_key(master_key)
