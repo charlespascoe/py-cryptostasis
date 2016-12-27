@@ -4,8 +4,9 @@ import sys
 from getpass import getpass
 import key_derivation
 import log
-from archive_encryptor import ArchiveEncryptor
+from archive_encryptor import ArchiveEncryptor, EncryptedArchiveCorruptException
 import consts
+import os
 
 
 def new_password(prompt, confirm_prompt='Confirm Password: '):
@@ -70,8 +71,31 @@ def encrypt(archive_index, input_strm, output_strm, archive_name):
     arch_enc.encrypt_archive(input_strm, output_strm, archive_name)
 
 
-def decrypt(input_strm, output_strm):
-    output_strm.write(input_strm.read(10))
+def decrypt(archive_index, input_strm, output_strm):
+    arch_enc = ArchiveEncryptor(archive_index)
+    try:
+        archive_entry = arch_enc.decrypt_archive(input_strm, output_strm)
+
+        if archive_entry is not None:
+            log.msg('Successfully decrypted \'{}\' archive'.format(archive_entry.name))
+            return True
+        else:
+            log.msg('Could not find th decryption key for this archive - are you sure that it is an encrypted archive?')
+            return False
+    except Exception as e:
+        log.msg('Something went wrong trying to decrypt the archive')
+        log.debug('Decryption failed - stack trace:\n{}'.format(str(e)))
+        return False
+    except EncryptedArchiveCorruptException as e:
+        log.msg('Failed to decrypt archive: {}'.format(e.message))
+
+        if e is EncryptedArchiveCorruptException:
+            log.info('Corrupt archive - {}'.format(e.reason))
+
+        log.debug('Full exception:\n{}'.format(str(e)))
+
+        return False
+
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -112,7 +136,16 @@ if __name__ == '__main__':
     if args.archive_name != None:
         encrypt(archive_index, input_strm, output_strm, args.archive_name)
     elif args.decrypt:
-        decrypt(input_strm, output_strm)
+        success = decrypt(archive_index, input_strm, output_strm)
+
+        if not success:
+            input_strm.close()
+            output_strm.flush()
+            output_strm.close()
+            if args.output_file != None:
+                os.remove(args.output_file)
+
+            sys.exit(1)
     else:
         parser.print_help()
 
