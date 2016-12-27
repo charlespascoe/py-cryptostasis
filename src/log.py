@@ -7,6 +7,12 @@ DEBUG = 3
 
 level = OFF
 
+def msg(message='', line_ending='\n'):
+    sys.stderr.write(message)
+    sys.stderr.write(line_ending)
+    sys.stderr.flush()
+
+
 def log(log_level, line_prefix=None, message='', line_ending='\n'):
     if level < log_level:
         return
