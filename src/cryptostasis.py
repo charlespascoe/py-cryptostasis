@@ -9,6 +9,9 @@ import consts
 import os
 
 
+VERSION = '0.1.0'
+
+
 def new_password(prompt, confirm_prompt='Confirm Password: '):
 
     while True:
@@ -105,6 +108,7 @@ if __name__ == '__main__':
 
     actions.add_argument('-e', '--encrypt', dest='archive_name', help='Encrypt archive (archive name must be unique)')
     actions.add_argument('-d', '--decrypt', dest='decrypt', help='Decrypt archive', action='store_true')
+    actions.add_argument('-V', '--version', dest='version', help='Show version and quit', action='store_true')
 
     parser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input Archive File')
     parser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Output File name')
@@ -118,6 +122,10 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
+
+    if args.version:
+        log.msg('Cryptostasis v{}'.format(VERSION))
+        sys.exit(0)
 
     log.level = args.verbosity
     log.info('Verbosity level: {}'.format(args.verbosity))
