@@ -103,11 +103,11 @@ if __name__ == '__main__':
 
     parser.add_argument('-v', '--verbose', action='count', default=0, dest='verbosity')
 
-    actions.add_argument('-e', dest='archive_name', help='Encrypt archive (archive name must be unique)')
-    actions.add_argument('-d', dest='decrypt', help='Decrypt archive', action='store_true')
+    actions.add_argument('-e', '--encrypt', dest='archive_name', help='Encrypt archive (archive name must be unique)')
+    actions.add_argument('-d', '--decrypt', dest='decrypt', help='Decrypt archive', action='store_true')
 
-    parser.add_argument('-f', type=str, dest='input_file', help='Input Archive File')
-    parser.add_argument('-o', type=str, dest='output_file', help='Output File name')
+    parser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input Archive File')
+    parser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Output File name')
     parser.add_argument(
         '-I',
         '--index',
