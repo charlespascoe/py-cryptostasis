@@ -15,6 +15,7 @@ class ArchiveEncryptor:
         key = os.urandom(consts.ENCRYPTION_KEY_LENGTH)
         tweak = os.urandom(consts.TWEAK_LENGTH)
 
+        output_strm.write(bytes([consts.ARCHIVE_VERSION]))
         output_strm.write(archive_id)
 
         cipher = Cipher(key, tweak)
