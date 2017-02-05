@@ -31,7 +31,7 @@ class EncryptedArchiveIndex:
     def __init__(self, path):
         log.debug('EncryptedArchiveIndex.__init__({})'.format(path))
         self.path = os.path.expanduser(path)
-        self.version = 1
+        self.version = None
         self.password_salt = None
         self.master_key = None
         self.master_key_hash = None
@@ -49,13 +49,12 @@ class EncryptedArchiveIndex:
         return ArchiveIndex(self)
 
     def save(self):
-        data = bytes([1]) + self.password_salt + self.master_key_hash + self.encrypted_index_mac + self.tweak + self.encrypted_index
+        data = bytes([VERSION]) + self.password_salt + self.master_key_hash + self.encrypted_index_mac + self.tweak + self.encrypted_index
 
         directory = os.path.dirname(self.path)
 
         if not os.path.isdir(directory):
             log.verbose('{} directory does not exist, creating...'.format(directory))
-            # TODO: need to check if file has directory name
             os.mkdir(directory)
 
         log.verbose('Writing data to {}'.format(self.path))
@@ -75,8 +74,10 @@ class EncryptedArchiveIndex:
 
         pos = 0
 
-        if data_buf[pos] != VERSION:
-            raise UnknownIndexVersionException(self.path, int(data_buf[pos]))
+        self.version = int(data_buf[pos])
+
+        if self.version != VERSION:
+            raise UnknownIndexVersionException(self.path, self.version)
 
         pos += 1
 
