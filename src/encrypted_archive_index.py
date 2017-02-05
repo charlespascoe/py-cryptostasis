@@ -4,6 +4,7 @@ import skein
 from archive_index import ArchiveIndex
 from consts import *
 import log
+import stat
 
 class ArchiveIndexException(Exception):
     def __init__(self, message):
@@ -62,6 +63,8 @@ class EncryptedArchiveIndex:
             f.write(data)
             f.flush()
         log.verbose('Done!')
+
+        os.chmod(self.path, stat.S_IRUSR | stat.S_IWUSR)
 
     def load(self):
         data_buf = None
