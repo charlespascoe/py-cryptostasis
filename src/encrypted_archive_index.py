@@ -30,7 +30,7 @@ class UnknownIndexVersionException(ArchiveIndexException):
 class EncryptedArchiveIndex:
     def __init__(self, path):
         log.debug('EncryptedArchiveIndex.__init__({})'.format(path))
-        self.path = os.path.expanduser(path)
+        self.path = os.path.abspath(os.path.expanduser(path))
         self.version = None
         self.password_salt = None
         self.master_key = None
