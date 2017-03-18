@@ -125,6 +125,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input Archive File')
     parser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Output File name')
+    parser.add_argument('--log-file', type=str, dest='log_file', help='Path to log file (use with --verbose)')
     parser.add_argument(
         '-I',
         '--index',
@@ -146,11 +147,15 @@ if __name__ == '__main__':
     input_strm = sys.stdin.buffer
     output_strm = sys.stdout.buffer
 
-    if args.input_file != None:
+    if args.input_file is not None:
         input_strm = open(args.input_file, 'rb')
 
-    if args.output_file != None:
+    if args.output_file is not None:
         output_strm = open(args.output_file, 'wb')
+
+    if args.log_file is not None:
+        log.msg('Writing logs to: {}'.format(args.log_file))
+        log.log_strm = open(args.log_file, 'w')
 
     archive_index = load_archive(args.index_file)
 
@@ -177,3 +182,5 @@ if __name__ == '__main__':
     input_strm.close()
     output_strm.flush()
     output_strm.close()
+    log.log_strm.flush()
+    log.log_strm.close()
