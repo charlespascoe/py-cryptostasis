@@ -93,6 +93,9 @@ class ArchiveIndex:
         self.index.append(ArchiveEntry(entry_id, name, key, tweak, file_hash, round(datetime.utcnow().timestamp())))
 
     def __str__(self):
+        if len(self.index) == 0:
+            return 'The index is empty'
+
         name_col_length = max([len(entry.name) for entry in self.index])
 
         lines = ['Name'.ljust(name_col_length) + '  Created']
