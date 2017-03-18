@@ -101,6 +101,16 @@ def decrypt(archive_index, input_strm, output_strm):
         return False
 
 
+def change_password(archive_index):
+    new_pass = new_password('Enter the new index password: ')
+
+    archive_index.encrypted_archive_index.password_salt = key_derivation.new_salt()
+    master_key = key_derivation.derive_master_key(new_pass, archive_index.encrypted_archive_index.password_salt)
+    archive_index.encrypted_archive_index.update_master_key(master_key)
+    archive_index.save()
+    log.msg('Successfully changed index password')
+
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     actions = parser.add_mutually_exclusive_group()
@@ -111,6 +121,7 @@ if __name__ == '__main__':
     actions.add_argument('-d', '--decrypt', dest='decrypt', help='Decrypt archive', action='store_true')
     actions.add_argument('-V', '--version', dest='version', help='Show version and quit', action='store_true')
     actions.add_argument('-l', '--list', dest='list', help='List all archive index entries', action='store_true')
+    actions.add_argument('-c', '--change-password', dest='change_password', help='Change the index password', action='store_true')
 
     parser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input Archive File')
     parser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Output File name')
@@ -158,6 +169,8 @@ if __name__ == '__main__':
             sys.exit(1)
     elif args.list:
         log.msg(str(archive_index))
+    elif args.change_password:
+        change_password(archive_index)
     else:
         parser.print_help()
 
