@@ -41,11 +41,11 @@ class ArchiveEntry:
     def __str__(self):
         output = ''
 
-        output += '    Entry ID: {}...\n'.format(self.id.hex()[:16])
+        output += '    Entry ID: {}\n'.format(log.format_bytes(self.id))
         output += '    Name: {}\n'.format(self.name)
-        output += '    Key: {}...\n'.format(self.key.hex()[:16])
-        output += '    Tweak: {}\n'.format(self.tweak.hex())
-        output += '    Encrypted File Hash: {}...\n'.format(self.file_hash.hex()[:16])
+        output += '    Key: {}\n'.format(log.format_bytes(self.key))
+        output += '    Tweak: {}\n'.format(log.format_bytes(self.tweak))
+        output += '    Encrypted File Hash: {}\n'.format(log.format_bytes(self.file_hash))
         output += '    Timestamp: {}'.format(datetime.utcfromtimestamp(self.timestamp).ctime())
 
         return output

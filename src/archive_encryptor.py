@@ -77,7 +77,7 @@ class ArchiveEncryptor:
         if len(archive_id) != consts.ARCHIVE_ID_LENGTH:
             raise EncryptedArchiveCorruptException('Invalid archive ID')
 
-        log.debug(self, 'Archive ID: {}...'.format(archive_id.hex()[:16]))
+        log.debug(self, 'Archive ID: {}'.format(log.format_bytes(archive_id)))
 
         archive_entry = self.archive_index.get_archive_entry(archive_id)
 

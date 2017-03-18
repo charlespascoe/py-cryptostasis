@@ -54,3 +54,10 @@ def verbose(component, message, line_ending='\n'):
 def debug(component, message, line_ending='\n'):
     log(DEBUG, format_prefix('DEBUG', component), message, line_ending)
 
+def format_bytes(buff):
+    hex_str = buff.hex()
+
+    if len(hex_str) > 16:
+        return '{}...'.format(hex_str[:16])
+
+    return hex_str

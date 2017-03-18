@@ -105,8 +105,8 @@ class EncryptedArchiveIndex:
 
         master_key_hash = hasher.digest()
 
-        log.debug(self, 'Computed master key hash: {}'.format(master_key_hash.hex()))
-        log.debug(self, 'Stored master key hash:   {}'.format(self.master_key_hash.hex()))
+        log.debug(self, 'Computed master key hash: {}'.format(log.format_bytes(master_key_hash)))
+        log.debug(self, 'Stored master key hash:   {}'.format(log.format_bytes(self.master_key_hash)))
 
         return master_key_hash == self.master_key_hash
 
@@ -120,8 +120,8 @@ class EncryptedArchiveIndex:
 
         encrypted_index_mac = hasher.digest()
 
-        log.debug(self, 'Computed index MAC: {}'.format(encrypted_index_mac.hex()))
-        log.debug(self, 'Stored index MAC:   {}'.format(self.encrypted_index_mac.hex()))
+        log.debug(self, 'Computed index MAC: {}'.format(log.format_bytes(encrypted_index_mac)))
+        log.debug(self, 'Stored index MAC:   {}'.format(log.format_bytes(self.encrypted_index_mac)))
 
         return encrypted_index_mac == self.encrypted_index_mac
 
