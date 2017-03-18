@@ -30,7 +30,7 @@ class UnknownIndexVersionException(ArchiveIndexException):
 
 class EncryptedArchiveIndex:
     def __init__(self, path):
-        log.debug('EncryptedArchiveIndex.__init__({})'.format(path))
+        log.debug(self, 'EncryptedArchiveIndex.__init__({})'.format(path))
         self.path = os.path.abspath(os.path.expanduser(path))
         self.version = None
         self.password_salt = None
@@ -42,11 +42,11 @@ class EncryptedArchiveIndex:
 
     def exists(self):
         exists = os.path.isfile(self.path)
-        log.debug('Index file {} does {}exist'.format(self.path, '' if exists else 'not '))
+        log.debug(self, 'Index file {} does {}exist'.format(self.path, '' if exists else 'not '))
         return exists
 
     def create_new_index(self):
-        log.verbose('Creating new archive index')
+        log.verbose(self, 'Creating new archive index')
         return ArchiveIndex(self)
 
     def save(self):
@@ -55,14 +55,14 @@ class EncryptedArchiveIndex:
         directory = os.path.dirname(self.path)
 
         if not os.path.isdir(directory):
-            log.verbose('{} directory does not exist, creating...'.format(directory))
+            log.verbose(self, '{} directory does not exist, creating...'.format(directory))
             os.mkdir(directory)
 
-        log.verbose('Writing data to {}'.format(self.path))
+        log.verbose(self, 'Writing data to {}'.format(self.path))
         with open(self.path, 'wb') as f:
             f.write(data)
             f.flush()
-        log.verbose('Done!')
+        log.verbose(self, 'Done!')
 
         os.chmod(self.path, stat.S_IRUSR | stat.S_IWUSR)
 
@@ -105,8 +105,8 @@ class EncryptedArchiveIndex:
 
         master_key_hash = hasher.digest()
 
-        log.debug('Computed master key hash: {}'.format(master_key_hash.hex()))
-        log.debug('Stored master key hash:   {}'.format(self.master_key_hash.hex()))
+        log.debug(self, 'Computed master key hash: {}'.format(master_key_hash.hex()))
+        log.debug(self, 'Stored master key hash:   {}'.format(self.master_key_hash.hex()))
 
         return master_key_hash == self.master_key_hash
 
@@ -120,8 +120,8 @@ class EncryptedArchiveIndex:
 
         encrypted_index_mac = hasher.digest()
 
-        log.debug('Computed index MAC: {}'.format(encrypted_index_mac.hex()))
-        log.debug('Stored index MAC:   {}'.format(self.encrypted_index_mac.hex()))
+        log.debug(self, 'Computed index MAC: {}'.format(encrypted_index_mac.hex()))
+        log.debug(self, 'Stored index MAC:   {}'.format(self.encrypted_index_mac.hex()))
 
         return encrypted_index_mac == self.encrypted_index_mac
 

@@ -46,7 +46,7 @@ class ArchiveIndex:
         if index_buf is not None:
             json_index = index_buf.decode('utf-8')
 
-            log.debug('JSON Index: {}'.format(json_index))
+            log.debug(self, 'JSON Index: {}'.format(json_index))
 
             parsed_index = json.loads(json_index)
 
@@ -84,12 +84,12 @@ class ArchiveIndex:
         return new_id
 
     def add_entry(self, entry_id, name, key, tweak, file_hash):
-        log.debug('Adding archive entry:')
-        log.debug('    Entry ID: {}...'.format(entry_id.hex()[:16]))
-        log.debug('    Name: {}'.format(name))
-        log.debug('    Key: {}...'.format(key.hex()[:16]))
-        log.debug('    Tweak: {}'.format(tweak.hex()))
-        log.debug('    Encrypted File Hash: {}...'.format(file_hash.hex()[:16]))
+        log.debug(self, 'Adding archive entry:')
+        log.debug(self, '    Entry ID: {}...'.format(entry_id.hex()[:16]))
+        log.debug(self, '    Name: {}'.format(name))
+        log.debug(self, '    Key: {}...'.format(key.hex()[:16]))
+        log.debug(self, '    Tweak: {}'.format(tweak.hex()))
+        log.debug(self, '    Encrypted File Hash: {}...'.format(file_hash.hex()[:16]))
         self.index.append(ArchiveEntry(entry_id, name, key, tweak, file_hash, round(datetime.utcnow().timestamp())))
 
     def __str__(self):
