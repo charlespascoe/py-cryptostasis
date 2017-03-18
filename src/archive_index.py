@@ -58,8 +58,6 @@ class ArchiveIndex:
         if index_buf is not None:
             json_index = index_buf.decode('utf-8')
 
-            log.debug(self, 'JSON Index: {}'.format(json_index))
-
             parsed_index = json.loads(json_index)
 
             self.index = [ArchiveEntry.create(data) for data in parsed_index]
