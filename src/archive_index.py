@@ -38,6 +38,18 @@ class ArchiveEntry:
     def format(self, name_col_length):
         return '{}  {}'.format(self.name.ljust(name_col_length), datetime.utcfromtimestamp(self.timestamp).ctime())
 
+    def __str__(self):
+        output = ''
+
+        output += '    Entry ID: {}...\n'.format(self.id.hex()[:16])
+        output += '    Name: {}\n'.format(self.name)
+        output += '    Key: {}...\n'.format(self.key.hex()[:16])
+        output += '    Tweak: {}\n'.format(self.tweak.hex())
+        output += '    Encrypted File Hash: {}...\n'.format(self.file_hash.hex()[:16])
+        output += '    Timestamp: {}'.format(datetime.utcfromtimestamp(self.timestamp).ctime())
+
+        return output
+
 
 class ArchiveIndex:
     def __init__(self, encrypted_archive_index, index_buf = None):
@@ -84,13 +96,10 @@ class ArchiveIndex:
         return new_id
 
     def add_entry(self, entry_id, name, key, tweak, file_hash):
+        entry = ArchiveEntry(entry_id, name, key, tweak, file_hash, round(datetime.utcnow().timestamp()))
         log.debug(self, 'Adding archive entry:')
-        log.debug(self, '    Entry ID: {}...'.format(entry_id.hex()[:16]))
-        log.debug(self, '    Name: {}'.format(name))
-        log.debug(self, '    Key: {}...'.format(key.hex()[:16]))
-        log.debug(self, '    Tweak: {}'.format(tweak.hex()))
-        log.debug(self, '    Encrypted File Hash: {}...'.format(file_hash.hex()[:16]))
-        self.index.append(ArchiveEntry(entry_id, name, key, tweak, file_hash, round(datetime.utcnow().timestamp())))
+        log.debug(self, str(entry))
+        self.index.append(entry)
 
     def __str__(self):
         if len(self.index) == 0:
