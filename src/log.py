@@ -7,6 +7,8 @@ DEBUG = 3
 
 level = OFF
 
+log_strm = sys.stderr
+
 def msg(message='', line_ending='\n'):
     sys.stderr.write(message)
     sys.stderr.write(line_ending)
@@ -22,9 +24,9 @@ def log(log_level, line_prefix=None, message='', line_ending='\n'):
     if line_prefix is not None:
         message = '\n'.join([line_prefix + line for line in message.split('\n')])
 
-    sys.stderr.write(message)
-    sys.stderr.write(line_ending)
-    sys.stderr.flush()
+    log_strm.write(message)
+    log_strm.write(line_ending)
+    log_strm.flush()
 
 
 def info(message='', line_ending='\n'):
