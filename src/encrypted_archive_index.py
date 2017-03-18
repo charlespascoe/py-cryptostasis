@@ -42,7 +42,12 @@ class EncryptedArchiveIndex:
 
     def exists(self):
         exists = os.path.isfile(self.path)
-        log.debug(self, 'Index file {} does {}exist'.format(self.path, '' if exists else 'not '))
+
+        if exists:
+            log.debug(self, 'Index file exists')
+        else:
+            log.debug(self, 'Index file does not exist')
+
         return exists
 
     def create_new_index(self):
