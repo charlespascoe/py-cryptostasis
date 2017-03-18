@@ -23,14 +23,14 @@ class ArchiveEncryptor:
         self.archive_index = archive_index
 
     def encrypt_archive(self, input_strm, output_strm, name):
-        log.verbose(self, 'Generating archive ID...')
+        log.verbose(self, 'Generating new archive ID...')
         archive_id = self.archive_index.new_id()
 
-        log.verbose(self, 'Generating encryption key and tweak...')
+        log.verbose(self, 'Generating encryption key and tweak for new archive...')
         key = os.urandom(consts.ENCRYPTION_KEY_LENGTH)
         tweak = os.urandom(consts.TWEAK_LENGTH)
 
-        log.verbose(self, 'Writing archive metadata')
+        log.verbose(self, 'Writing new archive metadata...')
         output_strm.write(bytes([consts.ARCHIVE_VERSION]))
         output_strm.write(archive_id)
 
@@ -59,12 +59,15 @@ class ArchiveEncryptor:
         self.archive_index.save()
 
     def decrypt_archive(self, input_strm, output_strm):
+        log.verbose(self, 'Attempting to decrypt archive')
         version_buf = input_strm.read(1)
 
         if len(version_buf) == 0:
             raise EncryptedArchiveCorruptException('Missing version')
 
         version = version_buf[0]
+
+        log.debug(self, 'Archive Version: {}'.format(version))
 
         if version != 1:
             raise UnknownVersionException(version)
@@ -74,10 +77,15 @@ class ArchiveEncryptor:
         if len(archive_id) != consts.ARCHIVE_ID_LENGTH:
             raise EncryptedArchiveCorruptException('Invalid archive ID')
 
+        log.debug(self, 'Archive ID: {}...'.format(archive_id.hex()[:16]))
+
         archive_entry = self.archive_index.get_archive_entry(archive_id)
 
         if archive_entry is None:
+            log.version(self, 'Archive not found')
             return None
+
+        log.debug(self, 'Archive Entry:\n' + str(archive_entry))
 
         cipher = Cipher(archive_entry.key, archive_entry.tweak)
         hasher = skein.skein1024()
