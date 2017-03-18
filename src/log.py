@@ -29,14 +29,14 @@ def log(log_level, line_prefix=None, message='', line_ending='\n'):
     log_strm.flush()
 
 
-def info(message='', line_ending='\n'):
-    log(INFO, '[INFO] ', message, line_ending)
+def info(component, message, line_ending='\n'):
+    log(INFO, '[INFO @ {}] '.format(component), message, line_ending)
 
 
-def verbose(message='', line_ending='\n'):
-    log(VERBOSE, '[VERBOSE] ', message, line_ending)
+def verbose(component, message, line_ending='\n'):
+    log(VERBOSE, '[VERBOSE @ {}] '.format(component), message, line_ending)
 
 
-def debug(message='', line_ending='\n'):
-    log(DEBUG, '[DEBUG] ', message, line_ending)
+def debug(component, message, line_ending='\n'):
+    log(DEBUG, '[DEBUG @ {}] '.format(component), message, line_ending)
 
