@@ -9,6 +9,20 @@ level = OFF
 
 log_strm = sys.stderr
 
+def component_name(component):
+    if isinstance(component, str):
+        return component
+
+    return component.__class__.__name__
+
+
+def format_prefix(level, level_name, component):
+    if (level >= DEBUG):
+        return '[{} @ {}] '.format(level_name, component_name(component))
+    else:
+        return '[{}] '.format(level_name)
+
+
 def msg(message='', line_ending='\n'):
     sys.stderr.write(message)
     sys.stderr.write(line_ending)
@@ -30,13 +44,13 @@ def log(log_level, line_prefix=None, message='', line_ending='\n'):
 
 
 def info(component, message, line_ending='\n'):
-    log(INFO, '[INFO @ {}] '.format(component), message, line_ending)
+    log(INFO, format_prefix(INFO, 'INFO', component), message, line_ending)
 
 
 def verbose(component, message, line_ending='\n'):
-    log(VERBOSE, '[VERBOSE @ {}] '.format(component), message, line_ending)
+    log(VERBOSE, format_prefix(VERBOSE, 'VERBOSE', component), message, line_ending)
 
 
 def debug(component, message, line_ending='\n'):
-    log(DEBUG, '[DEBUG @ {}] '.format(component), message, line_ending)
+    log(DEBUG, format_prefix(DEBUG, 'DEBUG', component), message, line_ending)
 
