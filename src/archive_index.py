@@ -56,7 +56,7 @@ class ArchiveIndex:
 
     def save(self):
         json_index = json.dumps([entry.serialise() for entry in self.index])
-        index_buf = bytes(json_index, 'utf-8')
+        index_buf = json_index.encode('utf-8')
 
         self.encrypted_archive_index.encrypt_index(index_buf)
         self.encrypted_archive_index.save()
