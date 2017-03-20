@@ -30,7 +30,6 @@ class UnknownIndexVersionException(ArchiveIndexException):
 
 class EncryptedArchiveIndex:
     def __init__(self, path):
-        log.debug('EncryptedArchiveIndex.__init__({})'.format(path))
         self.path = os.path.abspath(os.path.expanduser(path))
         self.version = None
         self.password_salt = None
@@ -42,11 +41,16 @@ class EncryptedArchiveIndex:
 
     def exists(self):
         exists = os.path.isfile(self.path)
-        log.debug('Index file {} does {}exist'.format(self.path, '' if exists else 'not '))
+
+        if exists:
+            log.debug(self, 'Index file exists ({})'.format(self.path))
+        else:
+            log.debug(self, 'Index file does not exist ({})'.format(self.path))
+
         return exists
 
     def create_new_index(self):
-        log.verbose('Creating new archive index')
+        log.verbose(self, 'Creating new archive index')
         return ArchiveIndex(self)
 
     def save(self):
@@ -55,19 +59,28 @@ class EncryptedArchiveIndex:
         directory = os.path.dirname(self.path)
 
         if not os.path.isdir(directory):
-            log.verbose('{} directory does not exist, creating...'.format(directory))
+            log.verbose(self, '{} directory does not exist, creating...'.format(directory))
             os.mkdir(directory)
 
-        log.verbose('Writing data to {}'.format(self.path))
+        log.verbose(self, 'Writing index to {}'.format(self.path))
         with open(self.path, 'wb') as f:
             f.write(data)
             f.flush()
-        log.verbose('Done!')
+        log.verbose(self, 'Finished writing index')
 
         os.chmod(self.path, stat.S_IRUSR | stat.S_IWUSR)
 
+        log.debug(self, 'Saved Encrypted Index:')
+        log.debug(self, '    Index Version:       {}'.format(self.version))
+        log.debug(self, '    Password Salt:       {}'.format(log.format_bytes(self.password_salt)))
+        log.debug(self, '    Master Key Hash:     {}'.format(log.format_bytes(self.master_key_hash)))
+        log.debug(self, '    Encrypted Index MAC: {}'.format(log.format_bytes(self.encrypted_index_mac)))
+        log.debug(self, '    Encrypted Index:     {}'.format(log.format_bytes(self.encrypted_index)))
+
     def load(self):
         data_buf = None
+
+        log.verbose(self, 'Attempting to read index file at {}'.format(self.path))
 
         with open(self.path, 'rb') as f:
             data_buf = f.read()
@@ -98,6 +111,13 @@ class EncryptedArchiveIndex:
 
         self.encrypted_index = data_buf[pos : ]
 
+        log.debug(self, 'Loaded Encrypted Index:')
+        log.debug(self, '    Index Version:       {}'.format(self.version))
+        log.debug(self, '    Password Salt:       {}'.format(log.format_bytes(self.password_salt)))
+        log.debug(self, '    Master Key Hash:     {}'.format(log.format_bytes(self.master_key_hash)))
+        log.debug(self, '    Encrypted Index MAC: {}'.format(log.format_bytes(self.encrypted_index_mac)))
+        log.debug(self, '    Encrypted Index:     {}'.format(log.format_bytes(self.encrypted_index)))
+
     def verify_master_key(self, master_key):
         hasher = skein.skein1024()
 
@@ -105,8 +125,9 @@ class EncryptedArchiveIndex:
 
         master_key_hash = hasher.digest()
 
-        log.debug('Computed master key hash: {}'.format(master_key_hash.hex()))
-        log.debug('Stored master key hash:   {}'.format(self.master_key_hash.hex()))
+        log.debug(self, 'Verify Master Key:')
+        log.debug(self, '    Computed master key hash: {}'.format(log.format_bytes(master_key_hash)))
+        log.debug(self, '    Stored master key hash:   {}'.format(log.format_bytes(self.master_key_hash)))
 
         return master_key_hash == self.master_key_hash
 
@@ -120,8 +141,9 @@ class EncryptedArchiveIndex:
 
         encrypted_index_mac = hasher.digest()
 
-        log.debug('Computed index MAC: {}'.format(encrypted_index_mac.hex()))
-        log.debug('Stored index MAC:   {}'.format(self.encrypted_index_mac.hex()))
+        log.debug(self, 'Verify Index Integrity:')
+        log.debug(self, '    Computed index MAC: {}'.format(log.format_bytes(encrypted_index_mac)))
+        log.debug(self, '    Stored index MAC:   {}'.format(log.format_bytes(self.encrypted_index_mac)))
 
         return encrypted_index_mac == self.encrypted_index_mac
 

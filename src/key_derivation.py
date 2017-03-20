@@ -11,14 +11,14 @@ TYPE = argon2.low_level.Type.I
 
 
 def new_salt():
-    log.debug('Generating new salt')
+    log.debug('key_derivation', 'Generating new salt')
     salt = os.urandom(consts.PASSWORD_SALT_LENGTH)
-    log.debug('Generated new salt: {}'.format(salt.hex()))
+    log.debug('key_derivation', 'Generated new salt: {}'.format(salt.hex()))
     return salt
 
 
 def derive_master_key(password, salt):
-    log.info('Deriving key, please wait... ')
+    log.info('key_derivation', 'Deriving key, please wait... ')
 
     master_key = argon2.low_level.hash_secret_raw(
         secret=bytes(password, 'utf-16'),
@@ -30,6 +30,6 @@ def derive_master_key(password, salt):
         type=TYPE
     )
 
-    log.info('Derived key!')
+    log.info('key_derivation', 'Derived key!')
 
     return master_key

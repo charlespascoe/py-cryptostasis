@@ -32,7 +32,7 @@ def load_archive(path):
     eai = EncryptedArchiveIndex(path)
 
     if not eai.exists():
-        log.info('Archive Index does not exist - going through first time setup')
+        log.info('cryptostasis', 'Archive Index does not exist - going through first time setup')
         log.msg('===== First Time Setup =====')
         log.msg('You\'ll need to set a password used to encrypt the archive index')
         password = new_password('New Index Password: ')
@@ -43,13 +43,13 @@ def load_archive(path):
         archive_index.save()
         return archive_index
     else:
-        log.info('Attempting to load archive index')
+        log.info('cryptostasis', 'Attempting to load archive index')
         try:
             eai.load()
-            log.info('Successfully loaded archive index')
+            log.info('cryptostasis', 'Successfully loaded archive index')
         except Exception as e:
             log.msg('Failed to load archive index')
-            log.debug(str(e))
+            log.debug('cryptostasis', str(e))
             sys.exit(1)
 
         password = getpass('Index Password: ')
@@ -88,15 +88,15 @@ def decrypt(archive_index, input_strm, output_strm):
             return False
     except Exception as e:
         log.msg('Something went wrong trying to decrypt the archive')
-        log.debug('Decryption failed - stack trace:\n{}'.format(str(e)))
+        log.debug('cryptostasis', 'Decryption failed - stack trace:\n{}'.format(str(e)))
         return False
     except EncryptedArchiveCorruptException as e:
         log.msg('Failed to decrypt archive: {}'.format(e.message))
 
         if e is EncryptedArchiveCorruptException:
-            log.info('Corrupt archive - {}'.format(e.reason))
+            log.info('cryptostasis', 'Corrupt archive - {}'.format(e.reason))
 
-        log.debug('Full exception:\n{}'.format(str(e)))
+        log.debug('cryptostasis', 'Full exception:\n{}'.format(str(e)))
 
         return False
 
@@ -125,6 +125,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input Archive File')
     parser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Output File name')
+    parser.add_argument('--log-file', type=str, dest='log_file', help='Path to log file (use with --verbose)')
     parser.add_argument(
         '-I',
         '--index',
@@ -141,16 +142,20 @@ if __name__ == '__main__':
         sys.exit(0)
 
     log.level = args.verbosity
-    log.info('Verbosity level: {}'.format(args.verbosity))
+    log.info('cryptostasis', 'Verbosity level: {}'.format(args.verbosity))
 
     input_strm = sys.stdin.buffer
     output_strm = sys.stdout.buffer
 
-    if args.input_file != None:
+    if args.input_file is not None:
         input_strm = open(args.input_file, 'rb')
 
-    if args.output_file != None:
+    if args.output_file is not None:
         output_strm = open(args.output_file, 'wb')
+
+    if args.log_file is not None:
+        log.msg('Writing logs to: {}'.format(args.log_file))
+        log.log_strm = open(args.log_file, 'w')
 
     archive_index = load_archive(args.index_file)
 
@@ -177,3 +182,5 @@ if __name__ == '__main__':
     input_strm.close()
     output_strm.flush()
     output_strm.close()
+    log.log_strm.flush()
+    log.log_strm.close()
