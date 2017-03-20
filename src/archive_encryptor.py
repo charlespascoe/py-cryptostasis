@@ -37,6 +37,8 @@ class ArchiveEncryptor:
         cipher = Cipher(key, tweak)
         hasher = skein.skein1024()
 
+        blocks_processed = 0
+
         block = bytes([])
         encrypted_block = bytes([])
 
@@ -50,10 +52,16 @@ class ArchiveEncryptor:
             hasher.update(encrypted_block)
             output_strm.write(encrypted_block)
 
+            blocks_processed += 1
+
         encrypted_block = cipher.encrypt_block(cipher.append_padding(block))
         hasher.update(encrypted_block)
         output_strm.write(encrypted_block)
         output_strm.flush()
+
+        blocks_processed += 1
+
+        log.debug(self, 'Encrypt archive - blocks processed: {}'.format(blocks_processed))
 
         self.archive_index.add_entry(archive_id, name, key, tweak, hasher.digest())
         self.archive_index.save()
@@ -94,6 +102,8 @@ class ArchiveEncryptor:
         next_encrypted_block = input_strm.read(cipher.block_size_bytes)
         block = bytes([])
 
+        blocks_processed = 0
+
         while len(next_encrypted_block) > 0:
             encrypted_block = next_encrypted_block
             next_encrypted_block = input_strm.read(cipher.block_size_bytes)
@@ -103,6 +113,10 @@ class ArchiveEncryptor:
             if len(encrypted_block) != cipher.block_size_bytes:
                 raise EncryptedArchiveCorruptException('Invalid ciphertext length')
 
+            block = cipher.decrypt_block(encrypted_block)
+
+            blocks_processed += 1
+
             if len(next_encrypted_block) == 0:
                 # Last block - verify hash before removing padding
                 file_hash = hasher.digest()
@@ -110,10 +124,10 @@ class ArchiveEncryptor:
                 if archive_entry.file_hash != file_hash:
                     raise EncryptedArchiveCorruptException('Encrypted file hash does not match')
 
-                block = cipher.remove_padding(cipher.decrypt_block(encrypted_block))
-            else:
-                block = cipher.decrypt_block(encrypted_block)
+                block = cipher.remove_padding(block)
 
             output_strm.write(block)
+
+        log.debug(self, 'Decrypt archive - blocks processed: {}'.format(blocks_processed))
 
         return archive_entry
