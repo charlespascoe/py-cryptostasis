@@ -61,8 +61,11 @@ class ArchiveIndex:
             parsed_index = json.loads(json_index)
 
             self.index = [ArchiveEntry.create(data) for data in parsed_index]
+
+            log.verbose(self, 'Loaded {} archive entries'.format(len(self.index)))
         else:
             self.index = []
+            log.verbose(self, 'No archive JSON given - 0 archive entries loaded')
 
     def save(self):
         json_index = json.dumps([entry.serialise() for entry in self.index])
