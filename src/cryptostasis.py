@@ -167,7 +167,16 @@ if __name__ == '__main__':
     list_subparser = actions.add_parser('list', help='List entries in the index')
     list_subparser.set_defaults(func=list_index)
 
-    change_password_subparser = actions.add_parser('passwd', help='Change index password')
+    change_password_subparser = actions.add_parser(
+        'passwd',
+        description = (
+            'When changing the encryption password, you can also configure the Key Derivation Function (KDF) parameters. ' +
+            'If they are not set, they default to the current parameters as loaded from the index. ' +
+            'When creating a new index, the parameters are time_cost = {}, memory_cost = {}, and parallelism = {}'
+                .format(consts.DEFAULT_TIME_COST, consts.DEFAULT_MEMORY_COST, consts.DEFAULT_PARALLELISM)
+        ),
+        help = 'Change index password'
+    )
     change_password_subparser.set_defaults(func=change_password)
     change_password_subparser.add_argument('-t', '--time-cost', type=int, dest='time_cost', help='The time cost parameter passed to the KDF')
     change_password_subparser.add_argument('-m', '--memory-cost', type=int, dest='memory_cost', help='The memory cost parameter passed to the KDF')
