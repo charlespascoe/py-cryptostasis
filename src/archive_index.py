@@ -38,6 +38,18 @@ class ArchiveEntry:
     def format(self, name_col_length):
         return '{}  {}'.format(self.name.ljust(name_col_length), datetime.utcfromtimestamp(self.timestamp).ctime())
 
+    def __str__(self):
+        output = ''
+
+        output += '    Entry ID:     {}\n'.format(log.format_bytes(self.id))
+        output += '    Name:         {}\n'.format(self.name)
+        output += '    Key:          {}\n'.format(log.format_bytes(self.key))
+        output += '    Tweak:        {}\n'.format(log.format_bytes(self.tweak))
+        output += '    Archive Hash: {}\n'.format(log.format_bytes(self.file_hash))
+        output += '    Timestamp:    {}'.format(datetime.utcfromtimestamp(self.timestamp).ctime())
+
+        return output
+
 
 class ArchiveIndex:
     def __init__(self, encrypted_archive_index, index_buf = None):
@@ -46,17 +58,18 @@ class ArchiveIndex:
         if index_buf is not None:
             json_index = index_buf.decode('utf-8')
 
-            log.debug('JSON Index: {}'.format(json_index))
-
             parsed_index = json.loads(json_index)
 
             self.index = [ArchiveEntry.create(data) for data in parsed_index]
+
+            log.verbose(self, 'Loaded {} archive entries'.format(len(self.index)))
         else:
             self.index = []
+            log.verbose(self, 'No archive JSON given - 0 archive entries loaded')
 
     def save(self):
         json_index = json.dumps([entry.serialise() for entry in self.index])
-        index_buf = bytes(json_index, 'utf-8')
+        index_buf = json_index.encode('utf-8')
 
         self.encrypted_archive_index.encrypt_index(index_buf)
         self.encrypted_archive_index.save()
@@ -84,15 +97,15 @@ class ArchiveIndex:
         return new_id
 
     def add_entry(self, entry_id, name, key, tweak, file_hash):
-        log.debug('Adding archive entry:')
-        log.debug('    Entry ID: {}...'.format(entry_id.hex()[:16]))
-        log.debug('    Name: {}'.format(name))
-        log.debug('    Key: {}...'.format(key.hex()[:16]))
-        log.debug('    Tweak: {}'.format(tweak.hex()))
-        log.debug('    Encrypted File Hash: {}...'.format(file_hash.hex()[:16]))
-        self.index.append(ArchiveEntry(entry_id, name, key, tweak, file_hash, round(datetime.utcnow().timestamp())))
+        entry = ArchiveEntry(entry_id, name, key, tweak, file_hash, round(datetime.utcnow().timestamp()))
+        log.debug(self, 'Adding archive entry:')
+        log.debug(self, str(entry))
+        self.index.append(entry)
 
     def __str__(self):
+        if len(self.index) == 0:
+            return 'The index is empty'
+
         name_col_length = max([len(entry.name) for entry in self.index])
 
         lines = ['Name'.ljust(name_col_length) + '  Created']

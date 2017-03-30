@@ -1,16 +1,13 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from argparse import ArgumentParser
 from encrypted_archive_index import EncryptedArchiveIndex
 import sys
 from getpass import getpass
-import key_derivation
+from key_deriver import KeyDeriver
 import log
 from archive_encryptor import ArchiveEncryptor, EncryptedArchiveCorruptException
 import consts
 import os
-
-
-VERSION = '0.1.0'
 
 
 def new_password(prompt, confirm_prompt='Confirm Password: '):
@@ -28,32 +25,32 @@ def new_password(prompt, confirm_prompt='Confirm Password: '):
     return password
 
 
-def load_archive(path):
+def load_archive_index(path):
     eai = EncryptedArchiveIndex(path)
 
     if not eai.exists():
-        log.info('Archive Index does not exist - going through first time setup')
+        log.info('cryptostasis', 'Archive Index does not exist - going through first time setup')
         log.msg('===== First Time Setup =====')
         log.msg('You\'ll need to set a password used to encrypt the archive index')
         password = new_password('New Index Password: ')
-        eai.password_salt = key_derivation.new_salt()
-        master_key = key_derivation.derive_master_key(password, eai.password_salt)
+        eai.init_new()
+        master_key = eai.derive_master_key(password)
         eai.update_master_key(master_key)
         archive_index = eai.create_new_index()
         archive_index.save()
         return archive_index
     else:
-        log.info('Attempting to load archive index')
+        log.info('cryptostasis', 'Attempting to load archive index')
         try:
             eai.load()
-            log.info('Successfully loaded archive index')
+            log.info('cryptostasis', 'Successfully loaded archive index')
         except Exception as e:
             log.msg('Failed to load archive index')
-            log.debug(str(e))
+            log.debug('cryptostasis', str(e))
             sys.exit(1)
 
         password = getpass('Index Password: ')
-        master_key = key_derivation.derive_master_key(password, eai.password_salt)
+        master_key = eai.derive_master_key(password)
 
         if not eai.verify_master_key(master_key):
             log.msg('Incorrect password')
@@ -65,8 +62,10 @@ def load_archive(path):
 
         return eai.decrypt_index(master_key)
 
+# Actions
 
-def encrypt(archive_index, input_strm, output_strm, archive_name):
+def encrypt_archive(archive_index, input_strm, output_strm, args):
+    archive_name = args.archive_name
     if archive_index.name_exists(archive_name):
         log.msg('\'{}\' archive exists - quitting'.format(archive_name))
         sys.exit(1)
@@ -75,92 +74,145 @@ def encrypt(archive_index, input_strm, output_strm, archive_name):
     arch_enc.encrypt_archive(input_strm, output_strm, archive_name)
 
 
-def decrypt(archive_index, input_strm, output_strm):
+def decrypt_archive(archive_index, input_strm, output_strm, args):
     arch_enc = ArchiveEncryptor(archive_index)
+
+    success = True
+
     try:
         archive_entry = arch_enc.decrypt_archive(input_strm, output_strm)
 
         if archive_entry is not None:
             log.msg('Successfully decrypted \'{}\' archive'.format(archive_entry.name))
-            return True
         else:
             log.msg('Could not find th decryption key for this archive - are you sure that it is an encrypted archive?')
-            return False
+            success = False
     except Exception as e:
         log.msg('Something went wrong trying to decrypt the archive')
-        log.debug('Decryption failed - stack trace:\n{}'.format(str(e)))
-        return False
+        log.debug('cryptostasis', 'Decryption failed - stack trace:\n{}'.format(str(e)))
+        success = False
     except EncryptedArchiveCorruptException as e:
         log.msg('Failed to decrypt archive: {}'.format(e.message))
 
         if e is EncryptedArchiveCorruptException:
-            log.info('Corrupt archive - {}'.format(e.reason))
+            log.info('cryptostasis', 'Corrupt archive - {}'.format(e.reason))
 
-        log.debug('Full exception:\n{}'.format(str(e)))
+        log.debug('cryptostasis', 'Full exception:\n{}'.format(str(e)))
 
-        return False
+        success = False
+
+    if not success:
+        input_strm.close()
+        output_strm.flush()
+        output_strm.close()
+        if args.output_file is not None:
+            os.remove(args.output_file)
+
+        sys.exit(1)
+
+
+def list_index(archive_index, input_strm, output_strm, args):
+    log.msg(str(archive_index))
+
+
+def change_password(archive_index, input_strm, output_strm, args):
+    new_pass = new_password('Enter the new index password: ')
+
+    eai = archive_index.encrypted_archive_index
+
+    eai.password_salt = KeyDeriver.new_salt()
+
+    if args.time_cost is not None:
+        eai.time_cost = args.time_cost
+
+    if args.memory_cost is not None:
+        eai.memory_cost = args.memory_cost
+
+    if args.parallelism is not None:
+        eai.parallelism = args.parallelism
+
+    master_key = archive_index.encrypted_archive_index.derive_master_key(new_pass)
+    archive_index.encrypted_archive_index.update_master_key(master_key)
+    archive_index.save()
+    log.msg('Successfully changed index password')
 
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    actions = parser.add_mutually_exclusive_group()
 
     parser.add_argument('-v', '--verbose', action='count', default=0, dest='verbosity')
-
-    actions.add_argument('-e', '--encrypt', dest='archive_name', help='Encrypt archive (archive name must be unique)')
-    actions.add_argument('-d', '--decrypt', dest='decrypt', help='Decrypt archive', action='store_true')
-    actions.add_argument('-V', '--version', dest='version', help='Show version and quit', action='store_true')
-    actions.add_argument('-l', '--list', dest='list', help='List all archive index entries', action='store_true')
+    parser.add_argument('-V', '--version', dest='version', help='Show version and exit', action='store_true')
 
     parser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input Archive File')
     parser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Output File name')
+    parser.add_argument('--log-file', type=str, dest='log_file', help='Path to log file (use with --verbose)')
     parser.add_argument(
         '-I',
         '--index',
         type=str,
         dest='index_file',
-        default=consts.ARCHIVE_INDEX_DEFAULT_LOCATION,
-        help='Archive Index File (defaults to {})'.format(consts.ARCHIVE_INDEX_DEFAULT_LOCATION)
+        default=consts.INDEX_DEFAULT_LOCATION,
+        help='Archive Index File (defaults to {})'.format(consts.INDEX_DEFAULT_LOCATION)
     )
+
+    actions = parser.add_subparsers()
+
+    encrypt_subparser = actions.add_parser('encrypt', help='Encrypt an archive')
+    encrypt_subparser.set_defaults(func=encrypt_archive)
+    encrypt_subparser.add_argument('archive_name')
+
+    decrypt_subparser = actions.add_parser('decrypt', help='Decrypt an archive')
+    decrypt_subparser.set_defaults(func=decrypt_archive)
+
+    list_subparser = actions.add_parser('list', help='List entries in the index')
+    list_subparser.set_defaults(func=list_index)
+
+    change_password_subparser = actions.add_parser(
+        'passwd',
+        description = (
+            'When changing the encryption password, you can also configure the Key Derivation Function (KDF) parameters. ' +
+            'If they are not set, they default to the current parameters as loaded from the index. ' +
+            'When creating a new index, the parameters are time_cost = {}, memory_cost = {}, and parallelism = {}'
+                .format(consts.DEFAULT_TIME_COST, consts.DEFAULT_MEMORY_COST, consts.DEFAULT_PARALLELISM)
+        ),
+        help = 'Change index password'
+    )
+    change_password_subparser.set_defaults(func=change_password)
+    change_password_subparser.add_argument('-t', '--time-cost', type=int, dest='time_cost', help='The time cost parameter passed to the KDF')
+    change_password_subparser.add_argument('-m', '--memory-cost', type=int, dest='memory_cost', help='The memory cost parameter passed to the KDF')
+    change_password_subparser.add_argument('-p', '--parallelism', type=int, dest='parallelism', help='The parallelism parameter passed to the KDF')
 
     args = parser.parse_args()
 
     if args.version:
-        log.msg('Cryptostasis v{}'.format(VERSION))
+        log.msg('Cryptostasis v{}'.format(consts.VERSION))
         sys.exit(0)
 
     log.level = args.verbosity
-    log.info('Verbosity level: {}'.format(args.verbosity))
+    log.info('cryptostasis', 'Verbosity level: {}'.format(args.verbosity))
 
     input_strm = sys.stdin.buffer
     output_strm = sys.stdout.buffer
 
-    if args.input_file != None:
+    if args.input_file is not None:
         input_strm = open(args.input_file, 'rb')
 
-    if args.output_file != None:
+    if args.output_file is not None:
         output_strm = open(args.output_file, 'wb')
 
-    archive_index = load_archive(args.index_file)
+    if args.log_file is not None:
+        log.msg('Writing logs to: {}'.format(args.log_file))
+        log.log_strm = open(args.log_file, 'w')
 
-    if args.archive_name != None:
-        encrypt(archive_index, input_strm, output_strm, args.archive_name)
-    elif args.decrypt:
-        success = decrypt(archive_index, input_strm, output_strm)
+    archive_index = load_archive_index(args.index_file)
 
-        if not success:
-            input_strm.close()
-            output_strm.flush()
-            output_strm.close()
-            if args.output_file != None:
-                os.remove(args.output_file)
-
-            sys.exit(1)
-    elif args.list:
-        log.msg(str(archive_index))
+    if 'func' in args:
+        args.func(archive_index, input_strm, output_strm, args)
     else:
         parser.print_help()
 
     input_strm.close()
     output_strm.flush()
     output_strm.close()
+    log.log_strm.flush()
+    log.log_strm.close()
