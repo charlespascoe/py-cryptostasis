@@ -65,8 +65,10 @@ def load_archive(path):
 
         return eai.decrypt_index(master_key)
 
+# Actions
 
-def encrypt(archive_index, input_strm, output_strm, archive_name):
+def encrypt_archive(archive_index, input_strm, output_strm, args):
+    archive_name = args.archive_name
     if archive_index.name_exists(archive_name):
         log.msg('\'{}\' archive exists - quitting'.format(archive_name))
         sys.exit(1)
@@ -75,21 +77,23 @@ def encrypt(archive_index, input_strm, output_strm, archive_name):
     arch_enc.encrypt_archive(input_strm, output_strm, archive_name)
 
 
-def decrypt(archive_index, input_strm, output_strm):
+def decrypt_archive(archive_index, input_strm, output_strm, args):
     arch_enc = ArchiveEncryptor(archive_index)
+
+    success = True
+
     try:
         archive_entry = arch_enc.decrypt_archive(input_strm, output_strm)
 
         if archive_entry is not None:
             log.msg('Successfully decrypted \'{}\' archive'.format(archive_entry.name))
-            return True
         else:
             log.msg('Could not find th decryption key for this archive - are you sure that it is an encrypted archive?')
-            return False
+            success = False
     except Exception as e:
         log.msg('Something went wrong trying to decrypt the archive')
         log.debug('cryptostasis', 'Decryption failed - stack trace:\n{}'.format(str(e)))
-        return False
+        success = False
     except EncryptedArchiveCorruptException as e:
         log.msg('Failed to decrypt archive: {}'.format(e.message))
 
@@ -98,10 +102,23 @@ def decrypt(archive_index, input_strm, output_strm):
 
         log.debug('cryptostasis', 'Full exception:\n{}'.format(str(e)))
 
-        return False
+        success = False
+
+    if not success:
+        input_strm.close()
+        output_strm.flush()
+        output_strm.close()
+        if args.output_file is not None:
+            os.remove(args.output_file)
+
+        sys.exit(1)
 
 
-def change_password(archive_index):
+def list_index(archive_index, input_strm, output_strm, args):
+    log.msg(str(archive_index))
+
+
+def change_password(archive_index, input_strm, output_strm, args):
     new_pass = new_password('Enter the new index password: ')
 
     archive_index.encrypted_archive_index.password_salt = key_derivation.new_salt()
@@ -113,15 +130,9 @@ def change_password(archive_index):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    actions = parser.add_mutually_exclusive_group()
 
     parser.add_argument('-v', '--verbose', action='count', default=0, dest='verbosity')
-
-    actions.add_argument('-e', '--encrypt', dest='archive_name', help='Encrypt archive (archive name must be unique)')
-    actions.add_argument('-d', '--decrypt', dest='decrypt', help='Decrypt archive', action='store_true')
-    actions.add_argument('-V', '--version', dest='version', help='Show version and quit', action='store_true')
-    actions.add_argument('-l', '--list', dest='list', help='List all archive index entries', action='store_true')
-    actions.add_argument('-c', '--change-password', dest='change_password', help='Change the index password', action='store_true')
+    parser.add_argument('-V', '--version', dest='version', help='Show version and exit', action='store_true')
 
     parser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input Archive File')
     parser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Output File name')
@@ -134,6 +145,21 @@ if __name__ == '__main__':
         default=consts.ARCHIVE_INDEX_DEFAULT_LOCATION,
         help='Archive Index File (defaults to {})'.format(consts.ARCHIVE_INDEX_DEFAULT_LOCATION)
     )
+
+    actions = parser.add_subparsers()
+
+    encrypt_subparser = actions.add_parser('encrypt', help='Encrypt an archive')
+    encrypt_subparser.set_defaults(func=encrypt_archive)
+    encrypt_subparser.add_argument('archive_name')
+
+    decrypt_subparser = actions.add_parser('decrypt', help='Decrypt an archive')
+    decrypt_subparser.set_defaults(func=decrypt_archive)
+
+    list_subparser = actions.add_parser('list', help='List entries in the index')
+    list_subparser.set_defaults(func=list_index)
+
+    change_password_subparser = actions.add_parser('passwd', help='Change index password')
+    change_password_subparser.set_defaults(func=change_password)
 
     args = parser.parse_args()
 
@@ -159,23 +185,8 @@ if __name__ == '__main__':
 
     archive_index = load_archive(args.index_file)
 
-    if args.archive_name != None:
-        encrypt(archive_index, input_strm, output_strm, args.archive_name)
-    elif args.decrypt:
-        success = decrypt(archive_index, input_strm, output_strm)
-
-        if not success:
-            input_strm.close()
-            output_strm.flush()
-            output_strm.close()
-            if args.output_file != None:
-                os.remove(args.output_file)
-
-            sys.exit(1)
-    elif args.list:
-        log.msg(str(archive_index))
-    elif args.change_password:
-        change_password(archive_index)
+    if 'func' in args:
+        args.func(archive_index, input_strm, output_strm, args)
     else:
         parser.print_help()
 
