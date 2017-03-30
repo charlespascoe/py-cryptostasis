@@ -1,4 +1,5 @@
 import os
+import sys
 import argon2
 import consts
 import log
@@ -6,6 +7,18 @@ import log
 
 class KeyDeriver:
     def __init__(self, time_cost, memory_cost, parallelism):
+        if 0 >= time_cost or time_cost > 2**16:
+            log.msg('Invalid time_cost value: {}'.format(time_cost))
+            sys.exit(1)
+
+        if 0 >= parallelism or parallelism > 64:
+            log.msg('Invalid parallelism value: {}'.format(time_cost))
+            sys.exit(1)
+
+        if 8 * parallelism > memory_cost or memory_cost > 2**32:
+            log.msg('Invalid memory_cost value: {} (minimum: 8 * parallelism = {}, maximum: {})'.format(time_cost, 8 * parallelism, 2**32))
+            sys.exit(1)
+
         self.time_cost = time_cost
         self.memory_cost = memory_cost
         self.parallelism = parallelism
