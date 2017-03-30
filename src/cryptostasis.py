@@ -3,14 +3,11 @@ from argparse import ArgumentParser
 from encrypted_archive_index import EncryptedArchiveIndex
 import sys
 from getpass import getpass
-import key_derivation
+from key_deriver import KeyDeriver
 import log
 from archive_encryptor import ArchiveEncryptor, EncryptedArchiveCorruptException
 import consts
 import os
-
-
-VERSION = '0.1.0'
 
 
 def new_password(prompt, confirm_prompt='Confirm Password: '):
@@ -36,8 +33,8 @@ def load_archive_index(path):
         log.msg('===== First Time Setup =====')
         log.msg('You\'ll need to set a password used to encrypt the archive index')
         password = new_password('New Index Password: ')
-        eai.password_salt = key_derivation.new_salt()
-        master_key = key_derivation.derive_master_key(password, eai.password_salt)
+        eai.init_new()
+        master_key = eai.derive_master_key(password)
         eai.update_master_key(master_key)
         archive_index = eai.create_new_index()
         archive_index.save()
@@ -53,7 +50,7 @@ def load_archive_index(path):
             sys.exit(1)
 
         password = getpass('Index Password: ')
-        master_key = key_derivation.derive_master_key(password, eai.password_salt)
+        master_key = eai.derive_master_key(password)
 
         if not eai.verify_master_key(master_key):
             log.msg('Incorrect password')
@@ -121,8 +118,8 @@ def list_index(archive_index, input_strm, output_strm, args):
 def change_password(archive_index, input_strm, output_strm, args):
     new_pass = new_password('Enter the new index password: ')
 
-    archive_index.encrypted_archive_index.password_salt = key_derivation.new_salt()
-    master_key = key_derivation.derive_master_key(new_pass, archive_index.encrypted_archive_index.password_salt)
+    archive_index.encrypted_archive_index.password_salt = KeyDeriver.new_salt()
+    master_key = archive_index.encrypted_archive_index.derive_master_key(new_pass)
     archive_index.encrypted_archive_index.update_master_key(master_key)
     archive_index.save()
     log.msg('Successfully changed index password')
@@ -142,8 +139,8 @@ if __name__ == '__main__':
         '--index',
         type=str,
         dest='index_file',
-        default=consts.ARCHIVE_INDEX_DEFAULT_LOCATION,
-        help='Archive Index File (defaults to {})'.format(consts.ARCHIVE_INDEX_DEFAULT_LOCATION)
+        default=consts.INDEX_DEFAULT_LOCATION,
+        help='Archive Index File (defaults to {})'.format(consts.INDEX_DEFAULT_LOCATION)
     )
 
     actions = parser.add_subparsers()
@@ -164,7 +161,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.version:
-        log.msg('Cryptostasis v{}'.format(VERSION))
+        log.msg('Cryptostasis v{}'.format(consts.VERSION))
         sys.exit(0)
 
     log.level = args.verbosity

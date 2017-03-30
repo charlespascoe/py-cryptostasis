@@ -5,6 +5,10 @@ from archive_index import ArchiveIndex
 from consts import *
 import log
 import stat
+from io import BytesIO
+from key_deriver import KeyDeriver
+import struct
+
 
 class ArchiveIndexException(Exception):
     def __init__(self, message):
@@ -38,6 +42,21 @@ class EncryptedArchiveIndex:
         self.encrypted_index_mac = None
         self.tweak = None
         self.encrypted_index = None
+        self.time_cost = None
+        self.memory_cost = None
+        self.parallelism = None
+
+    def init_new(self):
+        self.version = 1
+        self.password_salt = KeyDeriver.new_salt()
+        self.master_key = None
+        self.master_key_hash = None
+        self.encrypted_index_mac = None
+        self.tweak = None
+        self.encrypted_index = None
+        self.time_cost = 64
+        self.memory_cost = 65536
+        self.parallelism = 2
 
     def exists(self):
         exists = os.path.isfile(self.path)
@@ -54,8 +73,6 @@ class EncryptedArchiveIndex:
         return ArchiveIndex(self)
 
     def save(self):
-        data = bytes([VERSION]) + self.password_salt + self.master_key_hash + self.encrypted_index_mac + self.tweak + self.encrypted_index
-
         directory = os.path.dirname(self.path)
 
         if not os.path.isdir(directory):
@@ -64,8 +81,16 @@ class EncryptedArchiveIndex:
 
         log.verbose(self, 'Writing index to {}'.format(self.path))
         with open(self.path, 'wb') as f:
-            f.write(data)
-            f.flush()
+            f.write(bytes([INDEX_VERSION]))
+            f.write(self.password_salt)
+            f.write(struct.pack(INT_FORMAT, self.time_cost))
+            f.write(struct.pack(INT_FORMAT, self.memory_cost))
+            f.write(struct.pack(INT_FORMAT, self.parallelism))
+            f.write(self.master_key_hash)
+            f.write(self.encrypted_index_mac)
+            f.write(self.tweak)
+            f.write(self.encrypted_index)
+
         log.verbose(self, 'Finished writing index')
 
         os.chmod(self.path, stat.S_IRUSR | stat.S_IWUSR)
@@ -73,8 +98,12 @@ class EncryptedArchiveIndex:
         log.debug(self, 'Saved Encrypted Index:')
         log.debug(self, '    Index Version:       {}'.format(self.version))
         log.debug(self, '    Password Salt:       {}'.format(log.format_bytes(self.password_salt)))
+        log.debug(self, '    KDF Time Cost:       {}'.format(self.time_cost))
+        log.debug(self, '    KDF Memory Cost:     {}'.format(self.memory_cost))
+        log.debug(self, '    KDF Parallelism:     {}'.format(self.parallelism))
         log.debug(self, '    Master Key Hash:     {}'.format(log.format_bytes(self.master_key_hash)))
         log.debug(self, '    Encrypted Index MAC: {}'.format(log.format_bytes(self.encrypted_index_mac)))
+        log.debug(self, '    Tweak:               {}'.format(log.format_bytes(self.tweak)))
         log.debug(self, '    Encrypted Index:     {}'.format(log.format_bytes(self.encrypted_index)))
 
     def load(self):
@@ -85,38 +114,70 @@ class EncryptedArchiveIndex:
         with open(self.path, 'rb') as f:
             data_buf = f.read()
 
-        if len(data_buf) < (1 + PASSWORD_SALT_LENGTH + MASTER_KEY_HASH_LENGTH + ENCRYPTED_INDEX_MAC_LENGTH + TWEAK_LENGTH + MIN_ENCRYPTED_INDEX_LENGTH):
-            raise IndexCorruptException(self.path)
+        if len(data_buf) == 0:
+            raise IndexCorruptException(self.path, 'Index is empty')
 
-        pos = 0
 
-        self.version = int(data_buf[pos])
+        buf = BytesIO(data_buf)
 
-        if self.version != VERSION:
+        self.version = int(buf.read(1)[0])
+
+        if self.version == 1:
+            self.load_version_1(buf, len(data_buf))
+        elif self.version == 2:
+            self.load_version_2(buf, len(data_buf))
+        else:
             raise UnknownIndexVersionException(self.path, self.version)
-
-        pos += 1
-
-        self.password_salt = data_buf[pos : pos + PASSWORD_SALT_LENGTH]
-        pos += PASSWORD_SALT_LENGTH
-
-        self.master_key_hash = data_buf[pos : pos + MASTER_KEY_HASH_LENGTH]
-        pos += MASTER_KEY_HASH_LENGTH
-
-        self.encrypted_index_mac = data_buf[pos : pos + ENCRYPTED_INDEX_MAC_LENGTH]
-        pos += ENCRYPTED_INDEX_MAC_LENGTH
-
-        self.tweak = data_buf[pos : pos + TWEAK_LENGTH]
-        pos += TWEAK_LENGTH
-
-        self.encrypted_index = data_buf[pos : ]
 
         log.debug(self, 'Loaded Encrypted Index:')
         log.debug(self, '    Index Version:       {}'.format(self.version))
         log.debug(self, '    Password Salt:       {}'.format(log.format_bytes(self.password_salt)))
+        log.debug(self, '    KDF Time Cost:       {}'.format(self.time_cost))
+        log.debug(self, '    KDF Memory Cost:     {}'.format(self.memory_cost))
+        log.debug(self, '    KDF Parallelism:     {}'.format(self.parallelism))
         log.debug(self, '    Master Key Hash:     {}'.format(log.format_bytes(self.master_key_hash)))
         log.debug(self, '    Encrypted Index MAC: {}'.format(log.format_bytes(self.encrypted_index_mac)))
+        log.debug(self, '    Tweak:               {}'.format(log.format_bytes(self.tweak)))
         log.debug(self, '    Encrypted Index:     {}'.format(log.format_bytes(self.encrypted_index)))
+
+        if self.version < INDEX_VERSION:
+            log.info(self, 'Old archive index version ({}) - saving in new version ({})'.format(self.version, INDEX_VERSION))
+            self.version = INDEX_VERSION
+            self.save()
+
+
+    def load_version_1(self, buf, total_length):
+        if total_length < (1 + PASSWORD_SALT_LENGTH + MASTER_KEY_HASH_LENGTH + ENCRYPTED_INDEX_MAC_LENGTH + TWEAK_LENGTH + MIN_ENCRYPTED_INDEX_LENGTH):
+            raise IndexCorruptException(self.path)
+
+        buf.seek(1) # After version
+
+        self.password_salt = buf.read(PASSWORD_SALT_LENGTH)
+        self.master_key_hash = buf.read(MASTER_KEY_HASH_LENGTH)
+        self.encrypted_index_mac = buf.read(ENCRYPTED_INDEX_MAC_LENGTH)
+        self.tweak = buf.read(TWEAK_LENGTH)
+        self.encrypted_index = buf.read()
+
+        self.time_cost = 16
+        self.memory_cost = 65536
+        self.parallelism = 2
+
+    def load_version_2(self, buf, total_length):
+        if total_length < (1 + PASSWORD_SALT_LENGTH + INT_LENGTH * 3 + MASTER_KEY_HASH_LENGTH + ENCRYPTED_INDEX_MAC_LENGTH + TWEAK_LENGTH + MIN_ENCRYPTED_INDEX_LENGTH):
+            raise IndexCorruptException(self.path)
+
+        self.password_salt = buf.read(PASSWORD_SALT_LENGTH)
+        self.time_cost = struct.unpack(INT_FORMAT, buf.read(INT_LENGTH))[0]
+        self.memory_cost = struct.unpack(INT_FORMAT, buf.read(INT_LENGTH))[0]
+        self.parallelism = struct.unpack(INT_FORMAT, buf.read(INT_LENGTH))[0]
+        self.master_key_hash = buf.read(MASTER_KEY_HASH_LENGTH)
+        self.encrypted_index_mac = buf.read(ENCRYPTED_INDEX_MAC_LENGTH)
+        self.tweak = buf.read(TWEAK_LENGTH)
+        self.encrypted_index = buf.read()
+
+    def derive_master_key(self, password):
+        # Don't store master key, as it could be incorrect
+        return KeyDeriver(self.time_cost, self.memory_cost, self.parallelism).derive_master_key(password, self.password_salt)
 
     def verify_master_key(self, master_key):
         hasher = skein.skein1024()
