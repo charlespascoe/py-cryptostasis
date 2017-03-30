@@ -118,7 +118,19 @@ def list_index(archive_index, input_strm, output_strm, args):
 def change_password(archive_index, input_strm, output_strm, args):
     new_pass = new_password('Enter the new index password: ')
 
-    archive_index.encrypted_archive_index.password_salt = KeyDeriver.new_salt()
+    eai = archive_index.encrypted_archive_index
+
+    eai.password_salt = KeyDeriver.new_salt()
+
+    if args.time_cost is not None:
+        eai.time_cost = args.time_cost
+
+    if args.memory_cost is not None:
+        eai.memory_cost = args.memory_cost
+
+    if args.parallelism is not None:
+        eai.parallelism = args.parallelism
+
     master_key = archive_index.encrypted_archive_index.derive_master_key(new_pass)
     archive_index.encrypted_archive_index.update_master_key(master_key)
     archive_index.save()
@@ -155,8 +167,20 @@ if __name__ == '__main__':
     list_subparser = actions.add_parser('list', help='List entries in the index')
     list_subparser.set_defaults(func=list_index)
 
-    change_password_subparser = actions.add_parser('passwd', help='Change index password')
+    change_password_subparser = actions.add_parser(
+        'passwd',
+        description = (
+            'When changing the encryption password, you can also configure the Key Derivation Function (KDF) parameters. ' +
+            'If they are not set, they default to the current parameters as loaded from the index. ' +
+            'When creating a new index, the parameters are time_cost = {}, memory_cost = {}, and parallelism = {}'
+                .format(consts.DEFAULT_TIME_COST, consts.DEFAULT_MEMORY_COST, consts.DEFAULT_PARALLELISM)
+        ),
+        help = 'Change index password'
+    )
     change_password_subparser.set_defaults(func=change_password)
+    change_password_subparser.add_argument('-t', '--time-cost', type=int, dest='time_cost', help='The time cost parameter passed to the KDF')
+    change_password_subparser.add_argument('-m', '--memory-cost', type=int, dest='memory_cost', help='The memory cost parameter passed to the KDF')
+    change_password_subparser.add_argument('-p', '--parallelism', type=int, dest='parallelism', help='The parallelism parameter passed to the KDF')
 
     args = parser.parse_args()
 
