@@ -28,7 +28,7 @@ def new_password(prompt, confirm_prompt='Confirm Password: '):
     return password
 
 
-def load_archive(path):
+def load_archive_index(path):
     eai = EncryptedArchiveIndex(path)
 
     if not eai.exists():
@@ -183,7 +183,7 @@ if __name__ == '__main__':
         log.msg('Writing logs to: {}'.format(args.log_file))
         log.log_strm = open(args.log_file, 'w')
 
-    archive_index = load_archive(args.index_file)
+    archive_index = load_archive_index(args.index_file)
 
     if 'func' in args:
         args.func(archive_index, input_strm, output_strm, args)
