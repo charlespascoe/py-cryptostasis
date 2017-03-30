@@ -6,6 +6,7 @@ from consts import *
 import log
 import stat
 from io import BytesIO
+from key_deriver import KeyDeriver
 
 class ArchiveIndexException(Exception):
     def __init__(self, message):
@@ -39,6 +40,17 @@ class EncryptedArchiveIndex:
         self.encrypted_index_mac = None
         self.tweak = None
         self.encrypted_index = None
+        self.key_deriver = None
+
+    def init_new(self):
+        self.version = 1
+        self.password_salt = KeyDeriver.new_salt()
+        self.master_key = None
+        self.master_key_hash = None
+        self.encrypted_index_mac = None
+        self.tweak = None
+        self.encrypted_index = None
+        self.key_deriver = KeyDeriver(16, 65536, 2)
 
     def exists(self):
         exists = os.path.isfile(self.path)
@@ -117,6 +129,12 @@ class EncryptedArchiveIndex:
         self.encrypted_index_mac = buf.read(ENCRYPTED_INDEX_MAC_LENGTH)
         self.tweak = buf.read(TWEAK_LENGTH)
         self.encrypted_index = buf.read()
+
+        self.key_deriver = KeyDeriver(16, 65536, 2)
+
+    def derive_master_key(self, password):
+        # Don't store master key, as it could be incorrect
+        return self.key_deriver.derive_master_key(password, self.password_salt)
 
     def verify_master_key(self, master_key):
         hasher = skein.skein1024()
