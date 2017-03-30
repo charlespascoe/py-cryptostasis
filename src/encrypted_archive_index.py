@@ -5,6 +5,7 @@ from archive_index import ArchiveIndex
 from consts import *
 import log
 import stat
+from io import BytesIO
 
 class ArchiveIndexException(Exception):
     def __init__(self, message):
@@ -85,31 +86,18 @@ class EncryptedArchiveIndex:
         with open(self.path, 'rb') as f:
             data_buf = f.read()
 
-        if len(data_buf) < (1 + PASSWORD_SALT_LENGTH + MASTER_KEY_HASH_LENGTH + ENCRYPTED_INDEX_MAC_LENGTH + TWEAK_LENGTH + MIN_ENCRYPTED_INDEX_LENGTH):
-            raise IndexCorruptException(self.path)
+        if len(data_buf) == 0:
+            raise IndexCorruptException(self.path, 'Index is empty')
 
-        pos = 0
 
-        self.version = int(data_buf[pos])
+        buf = BytesIO(data_buf)
 
-        if self.version != VERSION:
+        self.version = int(buf.read(1)[0])
+
+        if self.version == 1:
+            self.load_version_1(buf, len(data_buf))
+        else:
             raise UnknownIndexVersionException(self.path, self.version)
-
-        pos += 1
-
-        self.password_salt = data_buf[pos : pos + PASSWORD_SALT_LENGTH]
-        pos += PASSWORD_SALT_LENGTH
-
-        self.master_key_hash = data_buf[pos : pos + MASTER_KEY_HASH_LENGTH]
-        pos += MASTER_KEY_HASH_LENGTH
-
-        self.encrypted_index_mac = data_buf[pos : pos + ENCRYPTED_INDEX_MAC_LENGTH]
-        pos += ENCRYPTED_INDEX_MAC_LENGTH
-
-        self.tweak = data_buf[pos : pos + TWEAK_LENGTH]
-        pos += TWEAK_LENGTH
-
-        self.encrypted_index = data_buf[pos : ]
 
         log.debug(self, 'Loaded Encrypted Index:')
         log.debug(self, '    Index Version:       {}'.format(self.version))
@@ -117,6 +105,18 @@ class EncryptedArchiveIndex:
         log.debug(self, '    Master Key Hash:     {}'.format(log.format_bytes(self.master_key_hash)))
         log.debug(self, '    Encrypted Index MAC: {}'.format(log.format_bytes(self.encrypted_index_mac)))
         log.debug(self, '    Encrypted Index:     {}'.format(log.format_bytes(self.encrypted_index)))
+
+    def load_version_1(self, buf, total_length):
+        if total_length < (1 + PASSWORD_SALT_LENGTH + MASTER_KEY_HASH_LENGTH + ENCRYPTED_INDEX_MAC_LENGTH + TWEAK_LENGTH + MIN_ENCRYPTED_INDEX_LENGTH):
+            raise IndexCorruptException(self.path)
+
+        buf.seek(1) # After version
+
+        self.password_salt = buf.read(PASSWORD_SALT_LENGTH)
+        self.master_key_hash = buf.read(MASTER_KEY_HASH_LENGTH)
+        self.encrypted_index_mac = buf.read(ENCRYPTED_INDEX_MAC_LENGTH)
+        self.tweak = buf.read(TWEAK_LENGTH)
+        self.encrypted_index = buf.read()
 
     def verify_master_key(self, master_key):
         hasher = skein.skein1024()
