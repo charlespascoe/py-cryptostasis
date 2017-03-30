@@ -81,7 +81,7 @@ class EncryptedArchiveIndex:
 
         log.verbose(self, 'Writing index to {}'.format(self.path))
         with open(self.path, 'wb') as f:
-            f.write(bytes([VERSION]))
+            f.write(bytes([INDEX_VERSION]))
             f.write(self.password_salt)
             f.write(struct.pack(INT_FORMAT, self.time_cost))
             f.write(struct.pack(INT_FORMAT, self.memory_cost))
@@ -140,9 +140,9 @@ class EncryptedArchiveIndex:
         log.debug(self, '    Tweak:               {}'.format(log.format_bytes(self.tweak)))
         log.debug(self, '    Encrypted Index:     {}'.format(log.format_bytes(self.encrypted_index)))
 
-        if self.version < VERSION:
-            log.info(self, 'Old archive index version ({}) - saving in new version ({})'.format(self.version, VERSION))
-            self.version = VERSION
+        if self.version < INDEX_VERSION:
+            log.info(self, 'Old archive index version ({}) - saving in new version ({})'.format(self.version, INDEX_VERSION))
+            self.version = INDEX_VERSION
             self.save()
 
 

@@ -10,9 +10,6 @@ import consts
 import os
 
 
-VERSION = '0.1.0'
-
-
 def new_password(prompt, confirm_prompt='Confirm Password: '):
 
     while True:
@@ -142,8 +139,8 @@ if __name__ == '__main__':
         '--index',
         type=str,
         dest='index_file',
-        default=consts.ARCHIVE_INDEX_DEFAULT_LOCATION,
-        help='Archive Index File (defaults to {})'.format(consts.ARCHIVE_INDEX_DEFAULT_LOCATION)
+        default=consts.INDEX_DEFAULT_LOCATION,
+        help='Archive Index File (defaults to {})'.format(consts.INDEX_DEFAULT_LOCATION)
     )
 
     actions = parser.add_subparsers()
@@ -164,7 +161,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.version:
-        log.msg('Cryptostasis v{}'.format(VERSION))
+        log.msg('Cryptostasis v{}'.format(consts.VERSION))
         sys.exit(0)
 
     log.level = args.verbosity
