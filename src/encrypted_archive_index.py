@@ -47,16 +47,16 @@ class EncryptedArchiveIndex:
         self.parallelism = None
 
     def init_new(self):
-        self.version = 1
+        self.version = INDEX_VERSION
         self.password_salt = KeyDeriver.new_salt()
         self.master_key = None
         self.master_key_hash = None
         self.encrypted_index_mac = None
         self.tweak = None
         self.encrypted_index = None
-        self.time_cost = 64
-        self.memory_cost = 65536
-        self.parallelism = 2
+        self.time_cost = DEFAULT_TIME_COST
+        self.memory_cost = DEFAULT_MEMORY_COST
+        self.parallelism = DEFAULT_PARALLELISM
 
     def exists(self):
         exists = os.path.isfile(self.path)
