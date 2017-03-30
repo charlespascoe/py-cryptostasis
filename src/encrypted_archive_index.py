@@ -40,7 +40,9 @@ class EncryptedArchiveIndex:
         self.encrypted_index_mac = None
         self.tweak = None
         self.encrypted_index = None
-        self.key_deriver = None
+        self.time_cost = None
+        self.memory_cost = None
+        self.parallelism = None
 
     def init_new(self):
         self.version = 1
@@ -50,7 +52,9 @@ class EncryptedArchiveIndex:
         self.encrypted_index_mac = None
         self.tweak = None
         self.encrypted_index = None
-        self.key_deriver = KeyDeriver(16, 65536, 2)
+        self.time_cost = 16
+        self.memory_cost = 65536
+        self.parallelism = 2
 
     def exists(self):
         exists = os.path.isfile(self.path)
@@ -114,6 +118,9 @@ class EncryptedArchiveIndex:
         log.debug(self, 'Loaded Encrypted Index:')
         log.debug(self, '    Index Version:       {}'.format(self.version))
         log.debug(self, '    Password Salt:       {}'.format(log.format_bytes(self.password_salt)))
+        log.debug(self, '    KDF Time Cost:       {}'.format(self.time_cost))
+        log.debug(self, '    KDF Memory Cost:     {}'.format(self.memory_cost))
+        log.debug(self, '    KDF Parallelism:     {}'.format(self.parallelism))
         log.debug(self, '    Master Key Hash:     {}'.format(log.format_bytes(self.master_key_hash)))
         log.debug(self, '    Encrypted Index MAC: {}'.format(log.format_bytes(self.encrypted_index_mac)))
         log.debug(self, '    Encrypted Index:     {}'.format(log.format_bytes(self.encrypted_index)))
@@ -130,11 +137,13 @@ class EncryptedArchiveIndex:
         self.tweak = buf.read(TWEAK_LENGTH)
         self.encrypted_index = buf.read()
 
-        self.key_deriver = KeyDeriver(16, 65536, 2)
+        self.time_cost = 16
+        self.memory_cost = 65536
+        self.parallelism = 2
 
     def derive_master_key(self, password):
         # Don't store master key, as it could be incorrect
-        return self.key_deriver.derive_master_key(password, self.password_salt)
+        return KeyDeriver(self.time_cost, self.memory_cost, self.parallelism).derive_master_key(password, self.password_salt)
 
     def verify_master_key(self, master_key):
         hasher = skein.skein1024()
