@@ -150,7 +150,7 @@ class EncryptedArchiveIndex:
         if total_length < (1 + PASSWORD_SALT_LENGTH + MASTER_KEY_HASH_LENGTH + ENCRYPTED_INDEX_MAC_LENGTH + TWEAK_LENGTH + MIN_ENCRYPTED_INDEX_LENGTH):
             raise IndexCorruptException(self.path)
 
-        buf.seek(1) # After version
+        buf.seek(1) # After version byte
 
         self.password_salt = buf.read(PASSWORD_SALT_LENGTH)
         self.master_key_hash = buf.read(MASTER_KEY_HASH_LENGTH)
@@ -165,6 +165,8 @@ class EncryptedArchiveIndex:
     def load_version_2(self, buf, total_length):
         if total_length < (1 + PASSWORD_SALT_LENGTH + INT_LENGTH * 3 + MASTER_KEY_HASH_LENGTH + ENCRYPTED_INDEX_MAC_LENGTH + TWEAK_LENGTH + MIN_ENCRYPTED_INDEX_LENGTH):
             raise IndexCorruptException(self.path)
+
+        buf.seek(1) # After version byte
 
         self.password_salt = buf.read(PASSWORD_SALT_LENGTH)
         self.time_cost = struct.unpack(INT_FORMAT, buf.read(INT_LENGTH))[0]
