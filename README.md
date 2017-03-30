@@ -35,17 +35,21 @@ You will be prompted on first use to set a password.
 
 To encrypt an archive:
 
-`$ cryptostasis -e archive-name -f archive.tar -o encrypted-archive.bin`
+`$ cryptostasis -f archive.tar -o encrypted-archive.bin encrypt archive-name`
 
 If `-f` or `--input-file` isn't specified, then it will read from stdin. If `-o` or `--output-file` isn't specified, then it will write to stdout.
 
 To decrypt and archive:
 
-`$ cryptostasis -d -f encrypted-archive.bin -o archive.tar`
+`$ cryptostasis -f encrypted-archive.bin -o archive.tar decrypt`
 
 To list all entries in the archive index:
 
-`$ cryptostasis -l`
+`$ cryptostasis list`
+
+To change the index encryption password:
+
+`$ cryptostasis passwd`
 
 Platform Support
 ----------------
