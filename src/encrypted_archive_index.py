@@ -124,7 +124,7 @@ class EncryptedArchiveIndex:
 
         if self.version == 1:
             self.load_version_1(buf, len(data_buf))
-        if self.version == 2:
+        elif self.version == 2:
             self.load_version_2(buf, len(data_buf))
         else:
             raise UnknownIndexVersionException(self.path, self.version)
