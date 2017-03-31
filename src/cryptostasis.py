@@ -162,7 +162,7 @@ def change_password(archive_index, args):
     log.msg('Successfully changed index password')
 
 
-if __name__ == '__main__':
+def main():
     parser = ArgumentParser()
 
     parser.add_argument('-v', '--verbose', action='count', default=0, dest='verbosity')
@@ -238,3 +238,10 @@ if __name__ == '__main__':
         sys.exit(0)
     else:
         sys.exit(status_code)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('Keyboard interrupt')
