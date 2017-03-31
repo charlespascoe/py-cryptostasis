@@ -62,9 +62,26 @@ def load_archive_index(path):
 
         return eai.decrypt_index(master_key)
 
+
+def get_input_strm(args):
+    if args.input_file is not None:
+        return open(args.input_file, 'rb')
+
+    return sys.stdin.buffer
+
+
+def get_output_strm(args):
+    if args.output_file is not None:
+        return open(args.output_file, 'wb')
+
+    return sys.stdout.buffer
+
 # Actions
 
-def encrypt_archive(archive_index, input_strm, output_strm, args):
+def encrypt_archive(archive_index, args):
+    input_strm = get_input_strm(args)
+    output_strm = get_output_strm(args)
+
     archive_name = args.archive_name
     if archive_index.name_exists(archive_name):
         log.msg('\'{}\' archive exists - quitting'.format(archive_name))
@@ -73,8 +90,15 @@ def encrypt_archive(archive_index, input_strm, output_strm, args):
     arch_enc = ArchiveEncryptor(archive_index)
     arch_enc.encrypt_archive(input_strm, output_strm, archive_name)
 
+    input_strm.close()
+    output_strm.flush()
+    output_strm.close()
 
-def decrypt_archive(archive_index, input_strm, output_strm, args):
+
+def decrypt_archive(archive_index, args):
+    input_strm = get_input_strm(args)
+    output_strm = get_output_strm(args)
+
     arch_enc = ArchiveEncryptor(archive_index)
 
     success = True
@@ -101,21 +125,22 @@ def decrypt_archive(archive_index, input_strm, output_strm, args):
 
         success = False
 
+    input_strm.close()
+    output_strm.flush()
+    output_strm.close()
+
     if not success:
-        input_strm.close()
-        output_strm.flush()
-        output_strm.close()
         if args.output_file is not None:
             os.remove(args.output_file)
 
-        sys.exit(1)
+        return 1
 
 
-def list_index(archive_index, input_strm, output_strm, args):
+def list_index(archive_index, args):
     log.msg(str(archive_index))
 
 
-def change_password(archive_index, input_strm, output_strm, args):
+def change_password(archive_index, args):
     new_pass = new_password('Enter the new index password: ')
 
     eai = archive_index.encrypted_archive_index
@@ -137,14 +162,12 @@ def change_password(archive_index, input_strm, output_strm, args):
     log.msg('Successfully changed index password')
 
 
-if __name__ == '__main__':
+def main():
     parser = ArgumentParser()
 
     parser.add_argument('-v', '--verbose', action='count', default=0, dest='verbosity')
     parser.add_argument('-V', '--version', dest='version', help='Show version and exit', action='store_true')
 
-    parser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input Archive File')
-    parser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Output File name')
     parser.add_argument('--log-file', type=str, dest='log_file', help='Path to log file (use with --verbose)')
     parser.add_argument(
         '-I',
@@ -160,9 +183,13 @@ if __name__ == '__main__':
     encrypt_subparser = actions.add_parser('encrypt', help='Encrypt an archive')
     encrypt_subparser.set_defaults(func=encrypt_archive)
     encrypt_subparser.add_argument('archive_name')
+    encrypt_subparser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input archive file (defaults to STDIN)')
+    encrypt_subparser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Encrypted output archive file (defaults to STDOUT)')
 
     decrypt_subparser = actions.add_parser('decrypt', help='Decrypt an archive')
     decrypt_subparser.set_defaults(func=decrypt_archive)
+    decrypt_subparser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input encrypted archive file (defaults to STDIN)')
+    decrypt_subparser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Output archive file (defaults to STDOUT)')
 
     list_subparser = actions.add_parser('list', help='List entries in the index')
     list_subparser.set_defaults(func=list_index)
@@ -191,28 +218,30 @@ if __name__ == '__main__':
     log.level = args.verbosity
     log.info('cryptostasis', 'Verbosity level: {}'.format(args.verbosity))
 
-    input_strm = sys.stdin.buffer
-    output_strm = sys.stdout.buffer
-
-    if args.input_file is not None:
-        input_strm = open(args.input_file, 'rb')
-
-    if args.output_file is not None:
-        output_strm = open(args.output_file, 'wb')
-
     if args.log_file is not None:
         log.msg('Writing logs to: {}'.format(args.log_file))
         log.log_strm = open(args.log_file, 'w')
 
     archive_index = load_archive_index(args.index_file)
 
+    status_code = 0
+
     if 'func' in args:
-        args.func(archive_index, input_strm, output_strm, args)
+        status_code = args.func(archive_index, args)
     else:
         parser.print_help()
 
-    input_strm.close()
-    output_strm.flush()
-    output_strm.close()
     log.log_strm.flush()
     log.log_strm.close()
+
+    if status_code is None:
+        sys.exit(0)
+    else:
+        sys.exit(status_code)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('Keyboard interrupt')
