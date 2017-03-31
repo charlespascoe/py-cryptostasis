@@ -39,7 +39,7 @@ To encrypt an archive:
 
 If `-f` or `--input-file` isn't specified, then it will read from stdin. If `-o` or `--output-file` isn't specified, then it will write to stdout.
 
-To decrypt and archive:
+To decrypt an archive:
 
 `$ cryptostasis decrypt -f encrypted-archive.bin -o archive.tar`
 
