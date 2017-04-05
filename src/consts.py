@@ -1,4 +1,4 @@
-VERSION = '0.2.0'
+VERSION = '0.2.1'
 
 # Index constants
 INDEX_DEFAULT_LOCATION = '~/.cryptostasis/index'
