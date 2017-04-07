@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 from argparse import ArgumentParser
 from encrypted_archive_index import EncryptedArchiveIndex
 import sys
@@ -208,6 +209,12 @@ def main():
     change_password_subparser.add_argument('-t', '--time-cost', type=int, dest='time_cost', help='The time cost parameter passed to the KDF')
     change_password_subparser.add_argument('-m', '--memory-cost', type=int, dest='memory_cost', help='The memory cost parameter passed to the KDF')
     change_password_subparser.add_argument('-p', '--parallelism', type=int, dest='parallelism', help='The parallelism parameter passed to the KDF')
+
+    try:
+        import argcomplete
+        argcomplete.autocomplete(parser)
+    except Exception:
+        pass # Optional argcomplete module not installed
 
     args = parser.parse_args()
 

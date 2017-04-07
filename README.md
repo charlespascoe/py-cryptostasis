@@ -26,6 +26,11 @@ Dependencies
 
 Install both dependencies by running `pip3 install -r requirements.txt`
 
+Autocomplete
+------------
+
+Cryptostasis can use [argcomplete](https://github.com/kislyuk/argcomplete) for tab completion, but this is optional.
+
 Usage
 -----
 
