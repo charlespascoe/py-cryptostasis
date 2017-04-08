@@ -183,7 +183,7 @@ def main():
 
     encrypt_subparser = actions.add_parser('encrypt', help='Encrypt an archive')
     encrypt_subparser.set_defaults(func=encrypt_archive)
-    encrypt_subparser.add_argument('archive_name')
+    encrypt_subparser.add_argument('archive_name', metavar='ARCHIVE_NAME', help='The unique name to store in the archive index')
     encrypt_subparser.add_argument('-f', '--input-file', type=str, dest='input_file', help='Input archive file (defaults to STDIN)')
     encrypt_subparser.add_argument('-o', '--output-file', type=str, dest='output_file', help='Encrypted output archive file (defaults to STDOUT)')
 
